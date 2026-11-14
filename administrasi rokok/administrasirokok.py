@@ -44,7 +44,6 @@ with tab_stock:
     st.subheader("📦 Manajemen Stock Rokok & Bon Multi-Merk")
     st.markdown("Input 1 nomor bon untuk sekaligus banyak merk rokok, pantau sisa stock kemarin, serta kalkulasi stock awal hari ini.")
 
-    # Gunakan counter untuk memaksa reset key form bon setiap kali sukses simpan
     if "bon_form_reset_id" not in st.session_state:
         st.session_state.bon_form_reset_id = 0
 
@@ -136,7 +135,6 @@ with tab_stock:
                             st.session_state.df_bon = pd.concat([st.session_state.df_bon, pd.DataFrame([new_row])], ignore_index=True)
                             sukses_count += 1
 
-                    # Reset seluruh form input ke awal
                     st.session_state.jumlah_baris_bon = 10
                     st.session_state.bon_form_reset_id += 1
                     st.session_state["last_bon_msg"] = f"✅ Berhasil menyimpan {sukses_count} item merk untuk No Bon **{nomor_bon}**!"
@@ -147,7 +145,6 @@ with tab_stock:
 
     st.divider()
 
-    # Sisa Stok Kemarin & Kalkulasi Stok Awal
     st.markdown("### 📉 Sisa Stock Rokok Kemarin & Stock Awal Hari Ini")
     prev_date = selected_date - timedelta(days=1)
     df_kemarin = pd.DataFrame()
@@ -196,12 +193,11 @@ with tab_stock:
     else:
         st.info("Belum ada data kalkulasi stock awal untuk hari ini.")
 
-# ================= TAB 1: INPUT TRANSAKSI (AUTO-RESET SETELAH SIMPAN) =================
+# ================= TAB 1: INPUT TRANSAKSI =================
 with tab1:
     st.subheader("📝 Form Pencatatan Harian Transaksi & Stok")
-    st.markdown("Pilih Nomor Bon untuk menampilkan otomatis seluruh merk rokok sesuai layout.")
+    st.markdown("Pilih Nomor Bon untuk menampilkan otomatis seluruh merk rokok sesuai layout[cite: 3].")
 
-    # Gunakan counter untuk mereset dropdown bon dan seluruh input transaksi setelah simpan
     if "trx_form_reset_id" not in st.session_state:
         st.session_state.trx_form_reset_id = 0
 
@@ -226,7 +222,6 @@ with tab1:
         if not selected_bon_rows.empty:
             default_team = selected_bon_rows.iloc[0]["Team/Promotor"]
 
-    # Header Layout Tabel (No Bon & Nama)
     col_h1, col_h2 = st.columns(2)
     with col_h1:
         st.markdown("**No Bon**")
@@ -256,7 +251,6 @@ with tab1:
 
     with st.form(f"form_transaksi_layout_{st.session_state.trx_form_reset_id}", clear_on_submit=True):
         
-        # 1. Stok Awal
         st.markdown("**Pilih Merk Rokok yang akan diinput transaksinya** | **Stock Awal (dalam satuan Bungkus)**")
         stok_awal_inputs = {}
         for merk in active_merks:
@@ -280,7 +274,6 @@ with tab1:
 
         st.markdown("---")
 
-        # 2. Rokok Belum Selesai / Gantung
         st.markdown("**Rokok Belum Selesai / Gantung** | **Jumlah (dalam satuan bungkus)**")
         gantung_inputs = {}
         for merk in active_merks:
@@ -298,7 +291,6 @@ with tab1:
 
         st.markdown("---")
 
-        # 3. Sisa Stock Akhir
         st.markdown("**Sisa Stock Akhir** | **Jumlah (dalam satuan bungkus)**")
         akhir_inputs = {}
         for merk in active_merks:
@@ -316,7 +308,6 @@ with tab1:
 
         st.markdown("---")
 
-        # 4. Harga Jual Konsumen (Satuan)
         st.markdown("**Harga Jual Konsumen (Satuan)** | **Harga Jual Konsumen (Satuan)**")
         harga_inputs = {}
         for merk in active_merks:
@@ -335,7 +326,6 @@ with tab1:
 
         st.markdown("---")
 
-        # 5. Pengeluaran Rokok Lain-lain
         st.markdown("**Pengeluaran Rokok Lain-lain** | **Jumlah (dalam satuan bungkus)**")
         lain_inputs = {}
         for merk in active_merks:
@@ -373,6 +363,7 @@ with tab1:
 
                     new_row = {
                         "ID": str(uuid.uuid4())[:8],
+                        "No Bon": input_no_bon,
                         "Tanggal": str(selected_date),
                         "Minggu": current_week,
                         "Team/Promotor": input_nama if input_nama else "Tanpa Nama",
@@ -391,15 +382,20 @@ with tab1:
                     st.session_state.df_transaksi = pd.concat([st.session_state.df_transaksi, pd.DataFrame([new_row])], ignore_index=True)
                     saved_count += 1
 
-                # Reset seluruh field dan dropdown ke kondisi awal
                 st.session_state.trx_form_reset_id += 1
-                st.session_state["last_trx_msg"] = f"✅ Berhasil menyimpan {saved_count} data transaksi untuk No Bon **{input_no_bon}**! Form telah di-reset."
+                st.session_state["last_trx_msg"] = f"✅ Berhasil menyimpan {saved_count} data transaksi untuk No Bon **{input_no_bon}**!"
                 st.rerun()
 
-# ================= TAB 2: TABEL REKAP & EDIT (ST.DATA_EDITOR) =================
+# ================= TAB 2: TABEL REKAP & EDIT (DENGAN REKAP PER BON, TEAM, & GRAND TOTAL) =================
 with tab2:
     st.subheader("📊 Tabel Rekapitulasi & Edit Data Transaksi")
+    
     if not st.session_state.df_transaksi.empty:
+        # Pastikan kolom No Bon ada (jika data lama belum ada, ambil dari Keperluan Bon atau ID)
+        if "No Bon" not in st.session_state.df_transaksi.columns:
+            st.session_state.df_transaksi["No Bon"] = st.session_state.df_transaksi["ID"]
+
+        st.markdown("### ✏️ Edit Data Transaksi Langsung")
         edited_df = st.data_editor(
             st.session_state.df_transaksi,
             num_rows="dynamic",
@@ -411,6 +407,59 @@ with tab2:
             st.rerun()
 
         st.divider()
+
+        # --- GRAND TOTAL Keseluruhan & Sisa Stock per Merk ---
+        st.markdown("### 💰 Grand Total & Ringkasan Keuangan")
+        
+        grand_total_konsumen = st.session_state.df_transaksi["Total Setoran Konsumen"].sum()
+        grand_total_kanvas = st.session_state.df_transaksi["Total Setoran Kanvas"].sum()
+        total_terjual = st.session_state.df_transaksi["Terjual"].sum()
+
+        col_gt1, col_gt2, col_gt3 = st.columns(3)
+        with col_gt1:
+            st.metric("Total Rokok Terjual", f"{total_terjual:,.0f} Bks")
+        with col_gt2:
+            st.metric("Grand Total Setoran Kanvas", f"Rp {grand_total_kanvas:,.0f}")
+        with col_gt3:
+            st.metric("🎯 Grand Total Setoran Konsumen", f"Rp {grand_total_konsumen:,.0f}")
+
+        st.markdown("---")
+
+        # Total Sisa Stock Akhir per Merk
+        st.markdown("### 📦 Total Sisa Stock Akhir (Sisa Fisik) per Merk Rokok")
+        df_sisa_merk = st.session_state.df_transaksi.groupby("Merk Rokok")["Stok Akhir"].sum().reset_index()
+        df_sisa_merk.columns = ["Merk Rokok", "Total Sisa Stok Akhir (Bungkus)"]
+        st.dataframe(df_sisa_merk, use_container_width=True)
+
+        st.markdown("---")
+
+        # --- REKAPITULASI PER BON ---
+        st.markdown("### 📋 Rekapitulasi Berdasarkan Nomor Bon")
+        if "No Bon" in st.session_state.df_transaksi.columns:
+            df_rekap_bon = st.session_state.df_transaksi.groupby("No Bon").agg({
+                "Team/Promotor": "first",
+                "Tanggal": "first",
+                "Terjual": "sum",
+                "Total Setoran Kanvas": "sum",
+                "Total Setoran Konsumen": "sum"
+            }).reset_index()
+            st.dataframe(df_rekap_bon, use_container_width=True)
+
+        st.markdown("---")
+
+        # --- REKAPITULASI PER TEAM / PROMOTOR ---
+        st.markdown("### 👥 Rekapitulasi Berdasarkan Team / Promotor")
+        df_rekap_team = st.session_state.df_transaksi.groupby("Team/Promotor").agg({
+            "Terjual": "sum",
+            "Total Setoran Kanvas": "sum",
+            "Total Setoran Konsumen": "sum"
+        }).reset_index()
+        st.dataframe(df_rekap_team, use_container_width=True)
+
+        st.divider()
+
+        # Menu Hapus Data Spesifik
+        st.markdown("### 🗑️ Menu Hapus Data")
         col_del1, col_del2 = st.columns(2)
         with col_del1:
             row_ids = st.session_state.df_transaksi["ID"].tolist()
