@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import uuid
+import io
 
 from app_config import setup_page_config, apply_custom_styling
 from date_utils import get_current_week_label, format_date_indo
@@ -30,11 +31,12 @@ selected_date = st.sidebar.date_input("Pilih Tanggal Laporan", datetime.now())
 current_week = get_current_week_label(selected_date)
 st.sidebar.info(f"📅 Periode: **{current_week}**")
 
-# --- MENU UTAMA ---
-tab_stock, tab1, tab2, tab3, tab4 = st.tabs([
+# --- MENU UTAMA (Termasuk Sub-Menu / Tab Penjualan Per Team) ---
+tab_stock, tab1, tab2, tab_penjualan_team, tab3, tab4 = st.tabs([
     "📦 Stock Rokok", 
     "📝 Input Transaksi", 
     "📊 Tabel Rekap & Edit", 
+    "📈 Penjualan Per Team",
     "📋 Manajemen Bon", 
     "⚙️ Reset & Hapus Data"
 ])
@@ -153,7 +155,6 @@ with tab_stock:
 
     st.markdown("### 📉 Sisa Stock Terakhir & Stock Awal Hari Ini")
     
-    # Ambil data transaksi sebelumnya (kondisi stok akhir dari tanggal paling baru sebelum hari ini)
     df_terakhir = pd.DataFrame()
     if not st.session_state.df_transaksi.empty:
         df_sorted_trx = st.session_state.df_transaksi.sort_values(by="Tanggal", ascending=False)
@@ -166,7 +167,6 @@ with tab_stock:
     combined_data = []
     if not df_terakhir.empty:
         for _, row in df_terakhir.iterrows():
-            # Hanya masukkan jika sisa stok terakhirnya > 0
             if row["Stok Akhir"] > 0:
                 combined_data.append({
                     "Team/Promotor": row["Team/Promotor"],
@@ -199,14 +199,12 @@ with tab_stock:
                         "Total Stock Awal": qty_bon
                     })
 
-    # Filter tambahan untuk memastikan hanya data dengan Total Stock Awal > 0 yang muncul
     final_combined_data = [item for item in combined_data if item["Total Stock Awal"] > 0]
 
     if final_combined_data:
         st.dataframe(pd.DataFrame(final_combined_data), use_container_width=True)
     else:
         st.info("Tidak ada sisa stok aktif atau bon baru untuk hari ini (semua stok bernilai 0 / habis).")
-        
 
 # ================= TAB 1: INPUT TRANSAKSI =================
 with tab1:
@@ -300,7 +298,6 @@ with tab1:
         stok_awal_values = {}
         
         for merk in active_merks:
-            # 1. Ambil kondisi Stok Akhir dari transaksi yang paling baru (tanggal terbaru) untuk promotor & merk ini
             stok_terakhir = 0
             if current_active_nama and not st.session_state.df_transaksi.empty:
                 df_sorted_trx = st.session_state.df_transaksi.sort_values(by="Tanggal", ascending=False)
@@ -311,7 +308,6 @@ with tab1:
                 if not match_terakhir.empty:
                     stok_terakhir = int(match_terakhir.iloc[0]["Stok Akhir"])
 
-            # 2. Ambil nilai bon hari ini untuk nomor bon & merk ini
             bon_hari_ini = 0
             if current_active_bon and not st.session_state.df_bon.empty:
                 match_bon = st.session_state.df_bon[
@@ -321,7 +317,6 @@ with tab1:
                 if not match_bon.empty:
                     bon_hari_ini = int(match_bon.iloc[0]["Total Setara Bungkus"])
 
-            # Total Stock Awal = Stok Akhir Terakhir + Bon Hari Ini
             val_awal = stok_terakhir + bon_hari_ini
             stok_awal_values[merk] = val_awal
 
@@ -471,7 +466,7 @@ with tab2:
 
         st.markdown("### 🔍 Filter Berdasarkan Team / Promotor")
         list_teams = ["Semua Team"] + st.session_state.df_transaksi["Team/Promotor"].unique().tolist()
-        selected_filter_team = st.selectbox("Pilih Team / Promotor untuk Filter Ringkasan", options=list_teams)
+        selected_filter_team = st.selectbox("Pilih Team / Promotor untuk Filter Ringkasan", options=list_teams, key="filter_team_tab2")
 
         if selected_filter_team == "Semua Team":
             df_filtered = st.session_state.df_transaksi
@@ -501,7 +496,6 @@ with tab2:
 
         st.markdown(f"### 📦 Kondisi Sisa Stock Akhir Terakhir per Merk Rokok ({selected_filter_team})")
         if not df_filtered.empty:
-            # Ambil stok akhir dari tanggal paling baru per merk untuk team yang difilter
             df_sorted_all = df_filtered.sort_values(by="Tanggal", ascending=False)
             df_latest_stock = df_sorted_all.drop_duplicates(subset=["Team/Promotor", "Merk Rokok"], keep="first")
             df_sisa_merk = df_latest_stock.groupby("Merk Rokok")["Stok Akhir"].sum().reset_index()
@@ -558,7 +552,60 @@ with tab2:
     else:
         st.info("Belum ada data transaksi tercatat.")
 
-# ================= TAB 3: MANAJEMEN BON =================
+# ================= TAB 3: PENJUALAN PER TEAM / PROMOTOR =================
+with tab_penjualan_team:
+    st.subheader("📈 Laporan Detail Penjualan per Team / Promotor")
+    st.markdown("Analisis penjualan per merk, harga kanvas, jumlah rokok laku, serta total nilai penjualan berdasarkan filter team.")
+
+    if not st.session_state.df_transaksi.empty:
+        list_teams_sales = ["Semua Team"] + st.session_state.df_transaksi["Team/Promotor"].unique().tolist()
+        filter_team_sales = st.selectbox("🔍 Pilih Team / Promotor", options=list_teams_sales, key="select_team_sales_report")
+
+        if filter_team_sales == "Semua Team":
+            df_sales_filtered = st.session_state.df_transaksi
+        else:
+            df_sales_filtered = st.session_state.df_transaksi[st.session_state.df_transaksi["Team/Promotor"] == filter_team_sales]
+
+        if not df_sales_filtered.empty:
+            # Agregasi data per merk rokok sesuai permintaan
+            df_grouped_sales = df_sales_filtered.groupby("Merk Rokok").agg({
+                "Harga Kanvas": "first",
+                "Terjual": "sum",
+                "Total Setoran Kanvas": "sum",
+                "Total Setoran Konsumen": "sum"
+            }).reset_index()
+
+            # Ubah nama kolom sesuai spesifikasi yang diminta user
+            df_grouped_sales.columns = [
+                "Merk Rokok", 
+                "Harga Kanvas (Per Bungkus)", 
+                "Jumlah Rokok Laku (Bks)", 
+                "Total (Harga Kanvas)", 
+                "Total (Harga Konsumen)"
+            ]
+
+            st.markdown(f"#### Hasil Laporan untuk: **{filter_team_sales}**")
+            st.dataframe(df_grouped_sales, use_container_width=True)
+
+            # Fitur Download Excel
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df_grouped_sales.to_excel(writer, sheet_name='Penjualan_Team', index=False)
+            excel_data = output.getvalue()
+
+            st.download_button(
+                label="📥 Download Data Penjualan (Excel)",
+                data=excel_data,
+                file_name=f"Laporan_Penjualan_{filter_team_sales.replace(' ', '_')}_{selected_date}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                type="primary"
+            )
+        else:
+            st.info("Tidak ada data penjualan untuk team yang dipilih.")
+    else:
+        st.info("Belum ada data transaksi tercatat untuk ditampilkan pada laporan penjualan.")
+
+# ================= TAB 4: MANAJEMEN BON =================
 with tab3:
     st.subheader("📋 Manajemen Data Bon Rokok")
     if not st.session_state.df_bon.empty:
@@ -582,7 +629,7 @@ with tab3:
     else:
         st.info("Belum ada data bon rokok tercatat.")
 
-# ================= TAB 4: RESET & HAPUS ALL (ADMIN ONLY) =================
+# ================= TAB 5: RESET & HAPUS ALL (ADMIN ONLY) =================
 with tab4:
     st.subheader("⚙️ Zona Administratif: Reset & Hapus Keseluruhan")
     if role != "Admin":
