@@ -74,7 +74,7 @@ st.markdown("Pencatatan stok awal, akhir, bon keperluan, rokok gantung/belum sel
 
 # --- SIDEBAR: NAVIGASI & ROLE ---
 try:
-    st.sidebar.image("SCMlogo.JPG", width=70)
+    st.sidebar.image("SCMlogo.png", width=70)
 except Exception:
     # Jika file SCMlogo.jpg belum ada, gunakan ikon cadangan otomatis
     st.sidebar.image("https://img.icons8.com/color/96/wooden-crate.png", width=70)
