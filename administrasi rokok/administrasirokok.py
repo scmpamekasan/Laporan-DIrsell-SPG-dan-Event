@@ -1,41 +1,32 @@
-import streamlit as st
+import pandas as pd
+import json
+import os
 
-def setup_page_config():
-    st.set_page_config(
-        page_title="Administrasi Stok & Penjualan Rokok",
-        page_icon="🚬",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
+MASTER_HARGA_FILE = "master_harga_rokok_lengkap.json"
 
-def apply_custom_styling():
-    st.markdown("""
-        <style>
-            /* Tema Background Warm Cream & Kartu Putih Bersih */
-            .stApp {
-                background-color: #FDFBF7;
-                color: #2C2C2C;
-            }
-            
-            /* Sidebar Styling */
-            [data-testid="stSidebar"] {
-                background-color: #F4EEDC;
-                border-right: 1px solid #E6DFCD;
-            }
+def load_master_harga():
+    if os.path.exists(MASTER_HARGA_FILE):
+        with open(MASTER_HARGA_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    else:
+        # Fallback dummy data jika file belum ada
+        return [
+            {"merk": "D 76 12", "harga_kanvas": 15500, "ball": 1, "slop": 20, "bungkus": 200},
+            {"merk": "LA Bold 16", "harga_kanvas": 29300, "ball": 1, "slop": 10, "bungkus": 100}
+        ]
 
-            /* Kartu Dashboard / Metric Card */
-            .metric-card {
-                background-color: #FFFFFF;
-                border: 1px solid #E6DFCD;
-                border-radius: 10px;
-                padding: 18px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-                text-align: center;
-            }
-            
-            /* Header Styling */
-            h1, h2, h3 {
-                color: #1A1A1A;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+def init_session_state():
+    # Inisialisasi DataFrame Transaksi Utama
+    if "df_transaksi" not in st.session_state:
+        st.session_state.df_transaksi = pd.DataFrame(columns=[
+            "ID", "Tanggal", "Minggu", "Team/Promotor", "Merk Rokok", 
+            "Stok Awal", "Stok Akhir", "Belum Selesai", 
+            "Bon Qty", "Keperluan Bon", "Terjual", 
+            "Harga Kanvas", "Harga Konsumen", "Total Setoran Kanvas", "Total Setoran Konsumen"
+        ])
+
+    # Inisialisasi DataFrame Bon Rokok Terperinci
+    if "df_bon" not in st.session_state:
+        st.session_state.df_bon = pd.DataFrame(columns=[
+            "ID", "Tanggal", "Team/Promotor", "Merk Rokok", "Jumlah Bon", "Keperluan", "Keterangan"
+        ])
