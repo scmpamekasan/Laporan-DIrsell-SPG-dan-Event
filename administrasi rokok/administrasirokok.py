@@ -412,7 +412,8 @@ with tab1:
         st.markdown("**Harga Jual Konsumen (Satuan)** | **Harga Jual Konsumen (Satuan)**")
         harga_inputs = {}
         for merk in active_merks:
-            def_harga = dict_master_detail.get(merk, {}).get("harga_kanvas", 10000)
+            # Mengambil nilai harga_konsumen dari master file JSON, default ke 0 jika kosong
+            def_harga = dict_master_detail.get(merk, {}).get("harga_konsumen", 0)
             c_m, c_v = st.columns([3, 2])
             with c_m:
                 st.text(merk)
