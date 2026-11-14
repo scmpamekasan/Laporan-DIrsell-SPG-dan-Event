@@ -32,11 +32,11 @@ current_week = get_current_week_label(selected_date)
 st.sidebar.info(f"📅 Periode: **{current_week}**")
 
 # --- MENU UTAMA (Termasuk Sub-Menu / Tab Penjualan Per Team) ---
-tab_stock, tab1, tab2, tab_penjualan_team, tab3, tab4 = st.tabs([
+tab_stock, tab1, tab2, tab_lap_team, tab3, tab4 = st.tabs([
     "📦 Stock Rokok", 
     "📝 Input Transaksi", 
     "📊 Tabel Rekap & Edit", 
-    "📈 Penjualan Per Team",
+    "👥 Laporan Per Team",
     "📋 Manajemen Bon", 
     "⚙️ Reset & Hapus Data"
 ])
@@ -566,7 +566,6 @@ with tab_lap_team:
             list_dates_lap = ["Semua Tanggal"] + sorted(st.session_state.df_transaksi["Tanggal"].unique().tolist(), reverse=True)
             filter_date_chosen = st.selectbox("Filter Tanggal", options=list_dates_lap, key="filter_date_lap")
 
-        # Terapkan filter
         df_lap = st.session_state.df_transaksi.copy()
         if filter_team_chosen != "Semua Team":
             df_lap = df_lap[df_lap["Team/Promotor"] == filter_team_chosen]
@@ -592,7 +591,6 @@ with tab_lap_team:
             st.markdown("#### Tabel Ringkasan Penjualan")
             st.dataframe(df_grouped_lap, use_container_width=True)
 
-            # Tombol Download Excel dengan pengecekan agar tidak error jika dataframe kosong
             if not df_grouped_lap.empty:
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine='openpyxl') as writer:
