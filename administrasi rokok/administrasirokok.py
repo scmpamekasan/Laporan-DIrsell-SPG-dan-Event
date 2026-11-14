@@ -75,7 +75,7 @@ st.markdown("Pencatatan stok awal, akhir, bon keperluan, rokok gantung/belum sel
 # --- SIDEBAR: NAVIGASI & ROLE ---
 st.sidebar.image("https://img.icons8.com/color/96/wooden-crate.png", width=70)
 st.sidebar.header("Panel Navigasi")
-role = st.sidebar.selectbox("Pilih Hak Akses (Role)", ["Admin", "Supervisi", "SPG / Promotor"])
+role = st.sidebar.selectbox("User Login", ["Promotor", "PIC Dirsell & Event", "Admin"])
 
 st.sidebar.divider()
 selected_date = st.sidebar.date_input("Pilih Tanggal Laporan", datetime.now())
@@ -114,14 +114,13 @@ with tab_stock:
             with c3:
                 keperluan_bon = st.selectbox("Keperluan Bon Utama", [
                     "Dirsell SPG", 
-                    "Event Pameran", 
+                    "Event", 
                     "Pembinaan Kantor", 
                     "Sampling / Promosi", 
-                    "Penambahan Stock Gudang", 
                     "Lainnya"
                 ])
             with c4:
-                keterangan_bon_umum = st.text_input("Keterangan (Opsional)", placeholder="Contoh: Untuk event shamrock")
+                keterangan_bon_umum = st.text_input("Keterangan (Opsional)", placeholder="Contoh: Untuk Event Shamrock")
 
             st.markdown("---")
             st.markdown("#### Daftar Merk Rokok dalam Bon Ini")
@@ -161,7 +160,7 @@ with tab_stock:
 
             if simpan_semua_bon:
                 if not nomor_bon:
-                    st.error("No Bon wajib diisi!")
+                    st.error("No Bon Wajib Diisi!")
                 elif not item_bon_list:
                     st.error("Pilih minimal 1 merk rokok!")
                 else:
@@ -259,8 +258,8 @@ with tab_stock:
 
 # ================= TAB 1: INPUT TRANSAKSI =================
 with tab1:
-    st.subheader("📝 Form Pencatatan Harian Transaksi & Stok")
-    st.markdown("Pilih Nomor Bon untuk menampilkan otomatis seluruh merk rokok sesuai layout.")
+    st.subheader("📝 Form Pencatatan Harian Transaksi & Stock")
+    st.markdown("Pilih Nomor Bon Untuk Menampilkan Otomatis Seluruh Merk Rokok Sesuai Layout.")
 
     if "trx_form_reset_id" not in st.session_state:
         st.session_state.trx_form_reset_id = 0
@@ -496,7 +495,7 @@ with tab1:
                 
 # ================= TAB 2: TABEL REKAP & EDIT =================
 with tab2:
-    st.subheader("📊 Tabel Rekapitulasi & Edit Data Transaksi")
+    st.subheader("📊 Tabel Rekapitulasi & ✏️ Edit Data Transaksi")
     
     if not st.session_state.df_transaksi.empty:
         if "No Bon" not in st.session_state.df_transaksi.columns:
