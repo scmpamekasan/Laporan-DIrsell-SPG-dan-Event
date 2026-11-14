@@ -378,10 +378,10 @@ with tab1:
             else:
                 saved_count = 0
                 for merk in active_merks:
-                    s_awal = stok_awal_values[merk]  # Mengambil nilai terkunci dari data bon
+                    s_awal = stok_awal_values[merk]
                     s_akhir = akhir_inputs[merk]
                     s_gantung = gantung_inputs[merk]
-                    s_lain = lain_inputs[merk]
+                    s_lain = lain_inputs[merk]  # Ini adalah Pengeluaran Rokok Lain-lain
                     h_konsumen = harga_inputs[merk]
                     
                     h_kanvas = dict_master_detail.get(merk, {}).get("harga_kanvas", 10000)
@@ -399,7 +399,8 @@ with tab1:
                         "Stok Awal": s_awal,
                         "Stok Akhir": s_akhir,
                         "Belum Selesai": s_gantung,
-                        "Rokok Lain-lain": s_lain
+                        "Bon Qty": s_lain,                # Diisi dari Pengeluaran Rokok Lain-lain
+                        "Keperluan Bon": final_input_bon, # Diisi langsung dengan No Bon
                         "Terjual": terjual,
                         "Harga Kanvas": h_kanvas,
                         "Harga Konsumen": h_konsumen,
@@ -417,7 +418,7 @@ with tab1:
 
                 st.session_state["last_trx_msg"] = f"✅ Berhasil menyimpan {saved_count} data transaksi untuk No Bon **{final_input_bon}**!"
                 st.rerun()
-
+                
 # ================= TAB 2: TABEL REKAP & EDIT =================
 with tab2:
     st.subheader("📊 Tabel Rekapitulasi & Edit Data Transaksi")
