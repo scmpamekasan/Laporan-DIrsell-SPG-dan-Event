@@ -552,60 +552,66 @@ with tab2:
     else:
         st.info("Belum ada data transaksi tercatat.")
 
-# ================= TAB 3: PENJUALAN PER TEAM / PROMOTOR =================
-with tab_penjualan_team:
-    st.subheader("📈 Laporan Detail Penjualan per Team / Promotor")
-    st.markdown("Analisis penjualan per merk, harga kanvas, jumlah rokok laku, serta total nilai penjualan berdasarkan filter team.")
+# ================= TAB 3: LAPORAN PENJUALAN PER TEAM =================
+with tab_lap_team:
+    st.subheader("👥 Laporan Data Penjualan per Team / Promotor")
+    st.markdown("Filter dan Analisis Penjualan berdasarkan Team/Promotor lengkap dengan opsi download Excel.")
 
     if not st.session_state.df_transaksi.empty:
-        list_teams_sales = ["Semua Team"] + st.session_state.df_transaksi["Team/Promotor"].unique().tolist()
-        filter_team_sales = st.selectbox("🔍 Pilih Team / Promotor", options=list_teams_sales, key="select_team_sales_report")
+        c_f1, c_f2 = st.columns(2)
+        with c_f1:
+            list_teams_lap = ["Semua Team"] + st.session_state.df_transaksi["Team/Promotor"].unique().tolist()
+            filter_team_chosen = st.selectbox("Pilih Team / Promotor", options=list_teams_lap, key="filter_team_lap")
+        with c_f2:
+            list_dates_lap = ["Semua Tanggal"] + sorted(st.session_state.df_transaksi["Tanggal"].unique().tolist(), reverse=True)
+            filter_date_chosen = st.selectbox("Filter Tanggal", options=list_dates_lap, key="filter_date_lap")
 
-        if filter_team_sales == "Semua Team":
-            df_sales_filtered = st.session_state.df_transaksi
-        else:
-            df_sales_filtered = st.session_state.df_transaksi[st.session_state.df_transaksi["Team/Promotor"] == filter_team_sales]
+        # Terapkan filter
+        df_lap = st.session_state.df_transaksi.copy()
+        if filter_team_chosen != "Semua Team":
+            df_lap = df_lap[df_lap["Team/Promotor"] == filter_team_chosen]
+        if filter_date_chosen != "Semua Tanggal":
+            df_lap = df_lap[df_lap["Tanggal"] == filter_date_chosen]
 
-        if not df_sales_filtered.empty:
-            # Agregasi data per merk rokok sesuai permintaan
-            df_grouped_sales = df_sales_filtered.groupby("Merk Rokok").agg({
+        if not df_lap.empty:
+            df_grouped_lap = df_lap.groupby("Merk Rokok").agg({
                 "Harga Kanvas": "first",
                 "Terjual": "sum",
                 "Total Setoran Kanvas": "sum",
                 "Total Setoran Konsumen": "sum"
             }).reset_index()
 
-            # Ubah nama kolom sesuai spesifikasi yang diminta user
-            df_grouped_sales.columns = [
+            df_grouped_lap.columns = [
                 "Merk Rokok", 
-                "Harga Kanvas (Per Bungkus)", 
+                "Harga Kanvas (per Bungkus)", 
                 "Jumlah Rokok Laku (Bks)", 
                 "Total (Harga Kanvas)", 
                 "Total (Harga Konsumen)"
             ]
 
-            st.markdown(f"#### Hasil Laporan untuk: **{filter_team_sales}**")
-            st.dataframe(df_grouped_sales, use_container_width=True)
+            st.markdown("#### Tabel Ringkasan Penjualan")
+            st.dataframe(df_grouped_lap, use_container_width=True)
 
-            # Fitur Download Excel
+            # Tombol Download Excel dengan pengecekan agar tidak error jika dataframe kosong
+            if not df_grouped_lap.empty:
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                    df_grouped_lap.to_excel(writer, index=False, sheet_name='Laporan Penjualan')
+                excel_data = output.getvalue()
 
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df_grouped_lap.to_excel(writer, index=False, sheet_name='Laporan Penjualan')
-            excel_data = output.getvalue()
-
-            
-            st.download_button(
-                label="📥 Download Data Penjualan (Excel)",
-                data=excel_data,
-                file_name=f"Laporan_Penjualan_{filter_team_sales.replace(' ', '_')}_{selected_date}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                type="primary"
-            )
+                filename_excel = f"Laporan_Penjualan_{filter_team_chosen.replace(' ', '_')}.xlsx"
+                st.download_button(
+                    label="📥 Download Excel Laporan Ini",
+                    data=excel_data,
+                    file_name=filename_excel,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    type="primary"
+                )
         else:
-            st.info("Tidak ada data penjualan untuk team yang dipilih.")
+            st.info("Tidak ada data transaksi yang sesuai dengan filter yang dipilih.")
     else:
-        st.info("Belum ada data transaksi tercatat untuk ditampilkan pada laporan penjualan.")
+        st.info("Belum ada data transaksi tercatat untuk dibuatkan laporan.")
+        
 
 # ================= TAB 4: MANAJEMEN BON =================
 with tab3:
