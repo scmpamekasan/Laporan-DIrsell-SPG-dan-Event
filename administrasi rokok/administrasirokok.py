@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 
 from app_config import setup_page_config, apply_custom_styling
@@ -31,7 +31,143 @@ current_week = get_current_week_label(selected_date)
 st.sidebar.info(f"📅 Periode: **{current_week}**")
 
 # --- MENU UTAMA ---
-tab1, tab2, tab3, tab4 = st.tabs(["📝 Input Transaksi", "📊 Tabel Rekap & Edit", "📋 Manajemen Bon", "⚙️ Reset & Hapus Data"])
+tab_stock, tab1, tab2, tab3, tab4 = st.tabs([
+    "📦 Stock Rokok", 
+    "📝 Input Transaksi", 
+    "📊 Tabel Rekap & Edit", 
+    "📋 Manajemen Bon", 
+    "⚙️ Reset & Hapus Data"
+])
+
+# ================= TAB 0: STOCK ROKOK (BON, STOK KEMARIN, STOK AWAL HARI INI) =================
+with tab_stock:
+    st.subheader("📦 Manajemen Stock Rokok & Bon Pagi")
+    st.markdown("Kelola nomor bon manual, pantau sisa stock kemarin, serta lihat kalkulasi stock awal hari ini.")
+
+    # 1. Form Pencatatan Bon Rokok
+    with st.expander("➕ Tambah Bon Rokok Baru", expanded=True):
+        with st.form("form_bon_stock", clear_on_submit=True):
+            col_b1, col_b2 = st.columns(2)
+            with col_b1:
+                nomor_bon = st.text_input("Nomor Bon Rokok (Manual)", placeholder="Contoh: BON/2026/XI/001")
+                team_bon = st.text_input("Nama Team / Promotor / Pemohon", placeholder="Contoh: SPG Zona Barat - Siska")
+            with col_b2:
+                merk_bon = st.selectbox("Merk Rokok", list_merk)
+                keperluan_bon = st.selectbox("Keperluan Bon", [
+                    "Dirsell SPG", 
+                    "Event Pameran", 
+                    "Pembinaan Kantor", 
+                    "Sampling / Promosi", 
+                    "Penambahan Stock Gudang", 
+                    "Lainnya"
+                ])
+
+            st.markdown("#### Rincian Satuan Rokok yang Di-bon")
+            sc1, sc2, sc3 = st.columns(3)
+            with sc1:
+                bon_ball = st.number_input("Jumlah (Ball)", min_value=0, value=0)
+            with sc2:
+                bon_slop = st.number_input("Jumlah (Slop)", min_value=0, value=0)
+            with sc3:
+                bon_bungkus = st.number_input("Jumlah (Bungkus)", min_value=0, value=0)
+
+            keterangan_bon = st.text_input("Keterangan Tambahan", placeholder="Catatan opsional...")
+            simpan_bon = st.form_submit_button("Simpan Bon Rokok")
+
+            if simpan_bon:
+                if not nomor_bon:
+                    st.error("Nomor Bon wajib diisi!")
+                else:
+                    master_item = dict_master_detail.get(merk_bon, {"slop": 10})
+                    slop_per_ball = master_item.get("slop", 10)
+                    bungkus_per_slop = 10
+                    
+                    total_setara_bungkus = (bon_ball * slop_per_ball * bungkus_per_slop) + (bon_slop * bungkus_per_slop) + bon_bungkus
+                    
+                    new_bon_row = {
+                        "ID": nomor_bon,
+                        "Tanggal": str(selected_date),
+                        "Team/Promotor": team_bon if team_bon else "Tanpa Nama",
+                        "Merk Rokok": merk_bon,
+                        "Ball": bon_ball,
+                        "Slop": bon_slop,
+                        "Bungkus": bon_bungkus,
+                        "Total Setara Bungkus": total_setara_bungkus,
+                        "Keperluan": keperluan_bon,
+                        "Keterangan": keterangan_bon
+                    }
+                    st.session_state.df_bon = pd.concat([st.session_state.df_bon, pd.DataFrame([new_bon_row])], ignore_index=True)
+                    st.success(f"✅ Bon rokok dengan No. **{nomor_bon}** berhasil disimpan!")
+
+    st.divider()
+
+    # 2. Sisa List Stock Rokok Kemarin
+    st.markdown("### 📉 Sisa Stock Rokok Kemarin")
+    prev_date = selected_date - timedelta(days=1)
+    df_kemarin = pd.DataFrame()
+    
+    if not st.session_state.df_transaksi.empty:
+        df_kemarin = st.session_state.df_transaksi[st.session_state.df_transaksi["Tanggal"] == str(prev_date)]
+        if not df_kemarin.empty:
+            st.info(f"Menampilkan sisa stock fisik (Stok Akhir) tanggal: **{prev_date}**")
+            st.dataframe(df_kemarin[["Team/Promotor", "Merk Rokok", "Stok Akhir"]], use_container_width=True)
+        else:
+            st.warning(f"Tidak ada catatan transaksi pada tanggal kemarin ({prev_date}).")
+    else:
+        st.info("Belum ada data transaksi tersimpan.")
+
+    st.divider()
+
+    # 3. List Rokok Stock Awal Hari Ini (Sisa Stock Kemarin + Bon Rokok Hari Ini)
+    st.markdown("### 📈 List Stock Awal Hari Ini (Sisa Kemarin + Bon Hari Ini)")
+    
+    # Ambil data bon hari ini
+    df_bon_hari_ini = pd.DataFrame()
+    if not st.session_state.df_bon.empty:
+        df_bon_hari_ini = st.session_state.df_bon[st.session_state.df_bon["Tanggal"] == str(selected_date)]
+
+    # Buat ringkasan stock awal gabungan per Team dan Merk Rokok
+    combined_data = []
+    
+    # Masukkan sisa kemarin sebagai basis
+    if not df_kemarin.empty:
+        for _, row in df_kemarin.iterrows():
+            combined_data.append({
+                "Team/Promotor": row["Team/Promotor"],
+                "Merk Rokok": row["Merk Rokok"],
+                "Stok Kemarin": row["Stok Akhir"],
+                "Bon Hari Ini (Bungkus)": 0,
+                "Total Stock Awal": row["Stok Akhir"]
+            })
+
+    # Tambahkan atau gabungkan dengan bon hari ini
+    if not df_bon_hari_ini.empty:
+        for _, bon_row in df_bon_hari_ini.iterrows():
+            team = bon_row["Team/Promotor"]
+            merk = bon_row["Merk Rokok"]
+            qty_bon = bon_row["Total Setara Bungkus"]
+            
+            found = False
+            for item in combined_data:
+                if item["Team/Promotor"] == team and item["Merk Rokok"] == merk:
+                    item["Bon Hari Ini (Bungkus)"] += qty_bon
+                    item["Total Stock Awal"] = item["Stok Kemarin"] + item["Bon Hari Ini (Bungkus)"]
+                    found = True
+                    break
+            if not found:
+                combined_data.append({
+                    "Team/Promotor": team,
+                    "Merk Rokok": merk,
+                    "Stok Kemarin": 0,
+                    "Bon Hari Ini (Bungkus)": qty_bon,
+                    "Total Stock Awal": qty_bon
+                })
+
+    if combined_data:
+        df_stock_awal = pd.DataFrame(combined_data)
+        st.dataframe(df_stock_awal, use_container_width=True)
+    else:
+        st.info("Belum ada data kalkulasi stock awal untuk hari ini (pastikan ada data sisa kemarin atau bon hari ini).")
 
 # ================= TAB 1: INPUT TRANSAKSI =================
 with tab1:
@@ -139,86 +275,9 @@ with tab2:
     else:
         st.info("Belum ada data transaksi tercatat. Silakan isi melalui tab **Input Transaksi**.")
 
-# ================= TAB 3: MANAJEMEN BON (SUB-MENU LENGKAP SATUAN & STOK) =================
+# ================= TAB 3: MANAJEMEN BON =================
 with tab3:
-    st.subheader("📋 Sub-Menu Bon Rokok & Penambahan Stok")
-    st.markdown("Catat bon rokok berdasarkan merk master, tentukan jumlah satuan (Ball, Slop, Bungkus), dan jadikan penambah stok awal.")
-
-    with st.form("form_bon_rokok", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        with c1:
-            bon_team = st.text_input("Nama Team / Promotor / Pemohon Bon", placeholder="Contoh: SPG Area Barat - Budi")
-            bon_merk = st.selectbox("Pilih Merk Rokok (Master)", list_merk)
-        with c2:
-            bon_keperluan = st.selectbox("Keperluan Bon", ["Event Pameran", "Direct Selling SPG", "Sampling / Promosi", "Penambahan Stock Gudang", "Lainnya"])
-            jadikan_stok = st.checkbox("Jadikan Bon ini sebagai Penambah Stock Awal / Stock Masuk", value=True)
-
-        st.markdown("---")
-        st.markdown("#### 📦 Rincian Jumlah Satuan Rokok")
-        sc1, sc2, sc3 = st.columns(3)
-        with sc1:
-            qty_ball = st.number_input("Jumlah (Ball)", min_value=0, value=0)
-        with sc2:
-            qty_slop = st.number_input("Jumlah (Slop)", min_value=0, value=0)
-        with sc3:
-            qty_bungkus = st.number_input("Jumlah (Bungkus)", min_value=0, value=0)
-            
-        bon_keterangan = st.text_input("Keterangan Tambahan", placeholder="Catatan opsional...")
-
-        submitted_bon = st.form_submit_button("Simpan Data Bon Rokok")
-
-        if submitted_bon:
-            # Ambil standar konversi dari master master_harga_rokok_lengkap.json
-            master_item = dict_master_detail.get(bon_merk, {"ball": 1, "slop": 10, "bungkus": 100})
-            slop_per_ball = master_item.get("slop", 10)
-            bungkus_per_slop = 10 # Standar umum atau dihitung dari master jika ada
-            
-            # Konversi total setara bungkus atau hitung total item
-            total_setara_bungkus = (qty_ball * slop_per_ball * bungkus_per_slop) + (qty_slop * bungkus_per_slop) + qty_bungkus
-            
-            new_bon_id = str(uuid.uuid4())[:8]
-            new_bon_row = {
-                "ID": new_bon_id,
-                "Tanggal": str(selected_date),
-                "Team/Promotor": bon_team if bon_team else "Tanpa Nama",
-                "Merk Rokok": bon_merk,
-                "Ball": qty_ball,
-                "Slop": qty_slop,
-                "Bungkus": qty_bungkus,
-                "Total Setara Bungkus": total_setara_bungkus,
-                "Keperluan": bon_keperluan,
-                "Masuk Stok": "Ya" if jadikan_stok else "Tidak",
-                "Keterangan": bon_keterangan
-            }
-            
-            st.session_state.df_bon = pd.concat([st.session_state.df_bon, pd.DataFrame([new_bon_row])], ignore_index=True)
-            
-            # Jika dicentang sebagai penambah stok, masukkan juga ke tabel transaksi sebagai tambahan stok awal
-            if jadikan_stok and total_setara_bungkus > 0:
-                harga_kanvas_val = master_item.get("harga_kanvas", 10000)
-                new_trx_from_bon = {
-                    "ID": "BON-" + new_bon_id,
-                    "Tanggal": str(selected_date),
-                    "Minggu": current_week,
-                    "Team/Promotor": bon_team if bon_team else "Tanpa Nama",
-                    "Merk Rokok": bon_merk,
-                    "Stok Awal": total_setara_bungkus,
-                    "Stok Akhir": 0,
-                    "Belum Selesai": 0,
-                    "Bon Qty": total_setara_bungkus,
-                    "Keperluan Bon": bon_keperluan,
-                    "Terjual": 0,
-                    "Harga Kanvas": harga_kanvas_val,
-                    "Harga Konsumen": harga_kanvas_val,
-                    "Total Setoran Kanvas": 0,
-                    "Total Setoran Konsumen": 0
-                }
-                st.session_state.df_transaksi = pd.concat([st.session_state.df_transaksi, pd.DataFrame([new_trx_from_bon])], ignore_index=True)
-
-            st.success("✅ Data Bon Rokok berhasil disimpan dan otomatis diperbarui!")
-
-    st.divider()
-    st.subheader("📋 Tabel Daftar Bon Rokok (Bisa Diedit)")
+    st.subheader("📋 Manajemen Data Bon Rokok")
     if not st.session_state.df_bon.empty:
         edited_bon_table = st.data_editor(
             st.session_state.df_bon,
@@ -230,7 +289,6 @@ with tab3:
             st.session_state.df_bon = edited_bon_table
             st.rerun()
             
-        # Tombol Hapus Bon Spesifik
         bon_ids = st.session_state.df_bon["ID"].tolist()
         del_bon_id = st.selectbox("Pilih ID Bon yang ingin dihapus", options=["-"] + bon_ids, key="select_del_bon")
         if st.button("Hapus Bon Terpilih"):
