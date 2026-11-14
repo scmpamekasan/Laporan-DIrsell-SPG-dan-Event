@@ -275,6 +275,8 @@ with tab1:
 
     active_merks = []
     current_active_bon = st.session_state.get(text_bon_key, "")
+    current_active_nama = st.session_state.get(text_nama_key, "")
+
     if current_active_bon and not st.session_state.df_bon.empty:
         selected_bon_rows = st.session_state.df_bon[st.session_state.df_bon["ID"] == current_active_bon]
         if not selected_bon_rows.empty:
@@ -285,21 +287,43 @@ with tab1:
 
     with st.form(f"form_transaksi_layout_{st.session_state.trx_form_reset_id}", clear_on_submit=True):
         
-        st.markdown("**Pilih Merk Rokok & Stock Awal (Terkunci dari Data Bon)**")
+        st.markdown("**Pilih Merk Rokok & Stock Awal (Sisa Stok Kemarin + Bon Hari Ini)**")
         stok_awal_values = {}
+        
+        # Ambil tanggal kemarin dan tanggal hari ini
+        prev_date = selected_date - timedelta(days=1)
+        
         for merk in active_merks:
-            val_awal = 0
+            # 1. Hitung sisa stok kemarin (Stok Akhir dari transaksi tanggal kemarin untuk promotor & merk ini)
+            stok_kemarin = 0
+            if current_active_nama and not st.session_state.df_transaksi.empty:
+                match_kemarin = st.session_state.df_transaksi[
+                    (st.session_state.df_transaksi["Tanggal"] == str(prev_date)) & 
+                    (st.session_state.df_transaksi["Team/Promotor"].str.lower() == current_active_nama.lower()) & 
+                    (st.session_state.df_transaksi["Merk Rokok"] == merk)
+                ]
+                if not match_kemarin.empty:
+                    stok_kemarin = int(match_kemarin.iloc[0]["Stok Akhir"])
+
+            # 2. Hitung bon hari ini (Total Setara Bungkus dari data bon untuk nomor/team & merk ini pada tanggal terpilih)
+            bon_hari_ini = 0
             if current_active_bon and not st.session_state.df_bon.empty:
-                matched = st.session_state.df_bon[(st.session_state.df_bon["ID"] == current_active_bon) & (st.session_state.df_bon["Merk Rokok"] == merk)]
-                if not matched.empty:
-                    val_awal = int(matched.iloc[0]["Total Setara Bungkus"])
-            
+                match_bon = st.session_state.df_bon[
+                    (st.session_state.df_bon["ID"] == current_active_bon) & 
+                    (st.session_state.df_bon["Merk Rokok"] == merk)
+                ]
+                if not match_bon.empty:
+                    bon_hari_ini = int(match_bon.iloc[0]["Total Setara Bungkus"])
+
+            # Total Stock Awal = Sisa Stok Kemarin + Bon Hari Ini
+            val_awal = stok_kemarin + bon_hari_ini
             stok_awal_values[merk] = val_awal
+
             c_m, c_v = st.columns([3, 2])
             with c_m:
                 st.markdown(f"🔹 **{merk}**")
             with c_v:
-                st.markdown(f"📦 **{val_awal:,} bks** (Terkunci)")
+                st.markdown(f"📦 **{val_awal:,} bks** *(Kemarin: {stok_kemarin} + Bon: {bon_hari_ini})*")
 
         st.markdown("---")
         st.markdown("**Rokok Belum Selesai / Gantung** | **Jumlah (dalam satuan bungkus)**")
@@ -381,7 +405,7 @@ with tab1:
                     s_awal = stok_awal_values[merk]
                     s_akhir = akhir_inputs[merk]
                     s_gantung = gantung_inputs[merk]
-                    s_lain = lain_inputs[merk]  # Ini adalah Pengeluaran Rokok Lain-lain
+                    s_lain = lain_inputs[merk]  
                     h_konsumen = harga_inputs[merk]
                     
                     h_kanvas = dict_master_detail.get(merk, {}).get("harga_kanvas", 10000)
