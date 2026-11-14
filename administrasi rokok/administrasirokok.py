@@ -188,57 +188,53 @@ with tab_stock:
     else:
         st.info("Belum ada data kalkulasi stock awal untuk hari ini.")
 
-# ================= TAB 1: INPUT TRANSAKSI (DENGAN DROPDOWN NOMOR BON OTOMATIS) =================
+# ================= TAB 1: INPUT TRANSAKSI (MENAMPILKAN SEMUA MERK DARI BON BESERTA STOKNYA) =================
 with tab1:
     st.subheader("Form Pencatatan Harian Stok & Penjualan")
-    st.markdown("Pilih Nomor Bon untuk mengisi otomatis data Team, Merk Rokok, dan Stock Awal.")
+    st.markdown("Pilih Nomor Bon untuk menampilkan daftar lengkap seluruh merk rokok beserta rincian stoknya dari bon tersebut.")
 
-    # Mengambil daftar nomor bon yang tersedia
     available_bons = []
     if not st.session_state.df_bon.empty:
         available_bons = st.session_state.df_bon["ID"].unique().tolist()
 
     selected_bon_id = st.selectbox("🔍 Cari / Pilih Nomor Bon", options=["- Manual Input -"] + available_bons)
 
-    # Inisialisasi nilai default form
     default_team = ""
-    default_merk = list_merk[0] if list_merk else ""
-    default_stok_awal = 0
     default_keperluan = "-"
-
-    # Jika nomor bon dipilih, ambil data otomatis dari df_bon
     selected_bon_rows = pd.DataFrame()
+
     if selected_bon_id != "- Manual Input -" and not st.session_state.df_bon.empty:
         selected_bon_rows = st.session_state.df_bon[st.session_state.df_bon["ID"] == selected_bon_id]
         if not selected_bon_rows.empty:
             default_team = selected_bon_rows.iloc[0]["Team/Promotor"]
             default_keperluan = selected_bon_rows.iloc[0]["Keperluan"]
-            # Jika bon hanya punya 1 merk atau multiple, kita bisa sediakan pilihan merk dari bon tersebut
-            bon_merks = selected_bon_rows["Merk Rokok"].tolist()
-            if bon_merks:
-                default_merk = bon_merks[0]
-                matching_row = selected_bon_rows[selected_bon_rows["Merk Rokok"] == default_merk]
-                if not matching_row.empty:
-                    default_stok_awal = int(matching_row.iloc[0]["Total Setara Bungkus"])
+            
+            # Tampilkan tabel daftar semua merk beserta stoknya dari bon yang dipilih
+            st.markdown(f"#### 📋 Daftar Merk & Stok dari Bon No: `{selected_bon_id}`")
+            display_bon_df = selected_bon_rows[["Merk Rokok", "Ball", "Slop", "Bungkus", "Total Setara Bungkus"]].reset_index(drop=True)
+            st.dataframe(display_bon_df, use_container_width=True)
 
     with st.form("form_transaksi", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
             team_name = st.text_input("Nama Team / Promotor / Direct Selling", value=default_team, placeholder="Contoh: SPG Zona Barat - Siska")
             
-            # Jika menggunakan bon, opsi merk bisa disesuaikan atau tetap dari master
+            # Jika menggunakan bon, pilih dari daftar merk yang ada di bon tersebut (bukan dropdown tersembunyi, melainkan list pilihan merk bon)
             if selected_bon_id != "- Manual Input -" and not selected_bon_rows.empty:
                 bon_merks_list = selected_bon_rows["Merk Rokok"].tolist()
-                merk_pilih = st.selectbox("Merk Rokok (Dari Bon)", bon_merks_list)
-                # Ambil stok awal sesuai merk yang dipilih di dropdown bon
-                matched_item = selected_bon_rows[selected_bon_rows["Merk Rokok"] == merk_pilih]
-                if not matched_item.empty:
-                    default_stok_awal = int(matched_item.iloc[0]["Total Setara Bungkus"])
+                merk_pilih = st.selectbox("Pilih Merk Rokok dari Daftar Bon di Atas", bon_merks_list)
             else:
                 merk_pilih = st.selectbox("Merk Rokok", list_merk)
 
         with col2:
-            stok_awal = st.number_input("Stok Awal (Otomatis dari Bon / Manual)", min_value=0, value=int(default_stok_awal))
+            # Otomatis menghitung stok awal berdasarkan merk yang dipilih dari bon
+            initial_stok_val = 0
+            if selected_bon_id != "- Manual Input -" and not selected_bon_rows.empty:
+                matched_item = selected_bon_rows[selected_bon_rows["Merk Rokok"] == merk_pilih]
+                if not matched_item.empty:
+                    initial_stok_val = int(matched_item.iloc[0]["Total Setara Bungkus"])
+
+            stok_awal = st.number_input("Stok Awal", min_value=0, value=initial_stok_val)
             stok_akhir = st.number_input("Stok Akhir (Sisa Fisik)", min_value=0, value=0)
             
         col3, col4, col5 = st.columns(3)
@@ -279,7 +275,7 @@ with tab1:
             }
             
             st.session_state.df_transaksi = pd.concat([st.session_state.df_transaksi, pd.DataFrame([new_row])], ignore_index=True)
-            st.success("✅ Data transaksi berdasarkan bon berhasil disimpan!")
+            st.success("✅ Data transaksi berhasil disimpan!")
 
 # ================= TAB 2: TABEL REKAP & EDIT (ST.DATA_EDITOR) =================
 with tab2:
