@@ -7,7 +7,7 @@ def load_master_harga():
     # Cek apakah file berada di dalam folder reportspg/ atau di root
     possible_paths = [
         "master_harga_rokok.json",
-        "administrasi rokok/master_harga_rokok.json",
+        "administrasirokok/master_harga_rokok.json",
         "./master_harga_rokok.json"
     ]
     
