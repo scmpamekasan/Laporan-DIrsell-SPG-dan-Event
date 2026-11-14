@@ -1,0 +1,695 @@
+[
+    {
+        "merk": "D 76 10",
+        "harga_kanvas": 11300,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D 76 12",
+        "harga_kanvas": 15500,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D 76 16",
+        "harga_kanvas": 21100,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "D 76 12 Madu Hitam",
+        "harga_kanvas": 13700,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D 76 Mangga 12",
+        "harga_kanvas": 14600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D 76 Mangga Royal 12",
+        "harga_kanvas": 14600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D 76 Nanas 12",
+        "harga_kanvas": 13700,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D 76 Royal 12",
+        "harga_kanvas": 15600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D 76 Apel 12",
+        "harga_kanvas": 14500,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D 76 Apel Royal 12",
+        "harga_kanvas": 15300,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "DS Espresso 12",
+        "harga_kanvas": 16300,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "DS Espresso Gold 12",
+        "harga_kanvas": 17700,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D. Super Kretek Wraps 12",
+        "harga_kanvas": 16000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Djarum D Wraps 12",
+        "harga_kanvas": 13500,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D. Black Matcha 12",
+        "harga_kanvas": 15300,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D. Cigarillos  6",
+        "harga_kanvas": 12600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Forte Original 20 N",
+        "harga_kanvas": 26200,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 100
+    },
+    {
+        "merk": "Forte Menthol 20 N",
+        "harga_kanvas": 26200,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 100
+    },
+    {
+        "merk": "Forte Cool Mango 20",
+        "harga_kanvas": 26200,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 100
+    },
+    {
+        "merk": "Forte Fuji Apple 20",
+        "harga_kanvas": 26800,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Forte Hokkaido Melon 20",
+        "harga_kanvas": 26800,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Pusaka K 12",
+        "harga_kanvas": 11000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Warkop K 12",
+        "harga_kanvas": 11000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Warkop Jambu K 12",
+        "harga_kanvas": 10000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Warkop Jambu K 16",
+        "harga_kanvas": 12700,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Urban K 16",
+        "harga_kanvas": 13500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Riddle K 16",
+        "harga_kanvas": 10700,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Xenon K 16",
+        "harga_kanvas": 11500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Filasta K 16",
+        "harga_kanvas": 10500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Bit K 16",
+        "harga_kanvas": 10500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Shoot K 16",
+        "harga_kanvas": 9700,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Team K 16",
+        "harga_kanvas": 9700,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Sergio K 16",
+        "harga_kanvas": 10500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Kilo K 16",
+        "harga_kanvas": 8800,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Score K 16",
+        "harga_kanvas": 8800,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Samba K 16",
+        "harga_kanvas": 8000,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Bulls K 12",
+        "harga_kanvas": 10000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Geo K 12",
+        "harga_kanvas": 10900,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Score Teh Manis K 12",
+        "harga_kanvas": 8000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Viper K 12",
+        "harga_kanvas": 10000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Chief K 12",
+        "harga_kanvas": 10000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Ziga K 12",
+        "harga_kanvas": 10000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Gaze K 12",
+        "harga_kanvas": 9000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Dio K 12",
+        "harga_kanvas": 9000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Dio Teh Manis K 12",
+        "harga_kanvas": 9000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "SKA K 12",
+        "harga_kanvas": 9000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "VIP K 12",
+        "harga_kanvas": 8700,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Raptor K 12",
+        "harga_kanvas": 9000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D. Super 12",
+        "harga_kanvas": 23900,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D. Super 16",
+        "harga_kanvas": 31800,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "D. Super MLD 20",
+        "harga_kanvas": 36700,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "D. S. MLD Fresh Cola 16",
+        "harga_kanvas": 30500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "D. Super MLD BLS 12",
+        "harga_kanvas": 21900,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Djarum King 12",
+        "harga_kanvas": 22400,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "LA Lights 12",
+        "harga_kanvas": 22100,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "LA Lights 16",
+        "harga_kanvas": 34500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "LA Menthol 16",
+        "harga_kanvas": 34500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "LA Ice 16",
+        "harga_kanvas": 34500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "LA Ice Purple Boost 16",
+        "harga_kanvas": 34500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "LA Ice Mangoboost 16",
+        "harga_kanvas": 34500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "LA Bold 12",
+        "harga_kanvas": 22000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "LA Bold 16",
+        "harga_kanvas": 29300,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "LA Bold 20",
+        "harga_kanvas": 38000,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "D. Black 16",
+        "harga_kanvas": 34500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "D. Black Cappuccino 16",
+        "harga_kanvas": 34500,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "D. Black Ice Tea 12",
+        "harga_kanvas": 22050,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "D. Black Matcha Kuro 16",
+        "harga_kanvas": 32800,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "D. Black Matcha Shiro 16",
+        "harga_kanvas": 32800,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Mustang 16",
+        "harga_kanvas": 20600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Crystal 16",
+        "harga_kanvas": 21100,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Crystal Red 16",
+        "harga_kanvas": 20600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Crystal Caffe Latte 12",
+        "harga_kanvas": 15600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Crystal Markisa 12",
+        "harga_kanvas": 15600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Ultra 16",
+        "harga_kanvas": 21100,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Senior 12",
+        "harga_kanvas": 16600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Senior Caffe Latte 12",
+        "harga_kanvas": 15600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Glory 16",
+        "harga_kanvas": 21100,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Urban Mild 16",
+        "harga_kanvas": 24200,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Urban Mild Watermelon 16",
+        "harga_kanvas": 24200,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Urban Mild Cool Berry 16",
+        "harga_kanvas": 22000,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "In Mild 16",
+        "harga_kanvas": 26200,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "In Mild Menthol 16",
+        "harga_kanvas": 26200,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "In Mild Apple Mint 16",
+        "harga_kanvas": 26000,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Nuu Mild 16",
+        "harga_kanvas": 23200,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Relax Mild 16",
+        "harga_kanvas": 23200,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Geo Mild 16",
+        "harga_kanvas": 24100,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Jump 16",
+        "harga_kanvas": 21100,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Black Scorpion 20",
+        "harga_kanvas": 28000,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Ferro 16",
+        "harga_kanvas": 20100,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Insta 16",
+        "harga_kanvas": 23200,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Troy 20",
+        "harga_kanvas": 28000,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Troy Moccacino 20",
+        "harga_kanvas": 28000,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Sergio 20",
+        "harga_kanvas": 27100,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Razor 20",
+        "harga_kanvas": 24000,
+        "ball": 1,
+        "slop": 10,
+        "bungkus": 100
+    },
+    {
+        "merk": "Chief 12",
+        "harga_kanvas": 16600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Chief 16",
+        "harga_kanvas": 20000,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Ultimo 12",
+        "harga_kanvas": 14600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Ziga 12",
+        "harga_kanvas": 16600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    },
+    {
+        "merk": "Raptor 12",
+        "harga_kanvas": 16600,
+        "ball": 1,
+        "slop": 20,
+        "bungkus": 200
+    }
+]
