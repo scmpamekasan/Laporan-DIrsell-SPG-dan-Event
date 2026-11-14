@@ -611,36 +611,42 @@ with tab_lap_team:
         st.info("Belum ada data transaksi tercatat untuk dibuatkan laporan.")
         
 
-# ================= TAB 4: MANAJEMEN BON (DENGAN FILTER KETERANGAN) =================
+# ================= TAB 4: MANAJEMEN BON (DENGAN FILTER ID BON, KETERANGAN, & TEAM) =================
 with tab3:
     st.subheader("📋 Manajemen & Rekap Data Bon Rokok")
-    st.markdown("Kelola data bon serta lihat rekapitulasi yang difilter berdasarkan keterangan bon.")
+    st.markdown("Kelola data bon serta filter rekapitulasi berdasarkan ID Bon, Keterangan, atau Team/Promotor.")
 
     if not st.session_state.df_bon.empty:
-        # Ambil daftar unik keterangan yang ada di tabel bon
+        # Ambil daftar unik untuk filter: ID Bon, Keterangan, dan Team
+        list_id_bon = ["Semua ID Bon"] + sorted(st.session_state.df_bon["ID"].dropna().unique().tolist())
+        
         list_keterangan = ["Semua Keterangan"]
         if "Keterangan" in st.session_state.df_bon.columns:
             unique_ket = st.session_state.df_bon["Keterangan"].dropna().unique().tolist()
             list_keterangan.extend([str(k) for k in unique_ket if str(k).strip() != ""])
 
-        # Filter Berdasarkan Keterangan
-        col_fk1, col_fk2 = st.columns(2)
+        list_team_bon = ["Semua Team"] + sorted(st.session_state.df_bon["Team/Promotor"].dropna().unique().tolist())
+
+        # Layout Filter (3 Kolom)
+        col_fk1, col_fk2, col_fk3 = st.columns(3)
         with col_fk1:
-            selected_ket_filter = st.selectbox("🔍 Filter Berdasarkan Keterangan", options=list_keterangan, key="filter_keterangan_bon")
+            selected_id_bon_filter = st.selectbox("🔍 Filter ID Bon", options=list_id_bon, key="filter_id_bon_mgmt")
         with col_fk2:
-            # Filter tambahan opsional berdasarkan Team/Promotor jika diperlukan
-            list_team_bon = ["Semua Team"] + st.session_state.df_bon["Team/Promotor"].unique().tolist()
-            selected_team_bon_filter = st.selectbox("👥 Filter Berdasarkan Team", options=list_team_bon, key="filter_team_bon_mgmt")
+            selected_ket_filter = st.selectbox("📌 Filter Keterangan", options=list_keterangan, key="filter_keterangan_bon")
+        with col_fk3:
+            selected_team_bon_filter = st.selectbox("👥 Filter Team / Promotor", options=list_team_bon, key="filter_team_bon_mgmt")
 
         # Terapkan Filter pada DataFrame Bon
         df_bon_filtered = st.session_state.df_bon.copy()
+        if selected_id_bon_filter != "Semua ID Bon":
+            df_bon_filtered = df_bon_filtered[df_bon_filtered["ID"] == selected_id_bon_filter]
         if selected_ket_filter != "Semua Keterangan":
             df_bon_filtered = df_bon_filtered[df_bon_filtered["Keterangan"] == selected_ket_filter]
         if selected_team_bon_filter != "Semua Team":
             df_bon_filtered = df_bon_filtered[df_bon_filtered["Team/Promotor"] == selected_team_bon_filter]
 
         st.markdown("---")
-        st.markdown(f"#### 📊 Tabel Data Bon Terfilter (Keterangan: *{selected_ket_filter}* | Team: *{selected_team_bon_filter}*)")
+        st.markdown(f"#### 📊 Tabel Data Bon Terfilter")
 
         if not df_bon_filtered.empty:
             # Tampilkan metrik ringkas total bungkus setara dari filter ini
@@ -665,7 +671,6 @@ with tab3:
             
             # Jika ada perubahan pada data editor, sinkronkan kembali ke df_bon utama
             if not edited_bon_table.equals(df_bon_filtered):
-                # Update baris yang diubah ke session_state.df_bon utama
                 for idx, row in edited_bon_table.iterrows():
                     st.session_state.df_bon.loc[st.session_state.df_bon["ID"] == row["ID"]] = row
                 st.rerun()
@@ -683,7 +688,7 @@ with tab3:
                 st.dataframe(df_rekap_ket, use_container_width=True)
 
         else:
-            st.warning("Tidak ada data bon yang sesuai dengan filter keterangan/team tersebut.")
+            st.warning("Tidak ada data bon yang sesuai dengan kombinasi filter tersebut.")
 
         st.divider()
 
