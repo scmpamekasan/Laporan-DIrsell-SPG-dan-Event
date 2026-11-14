@@ -423,7 +423,7 @@ with tab1:
                 )
 
         st.markdown("---")
-        st.markdown("**Harga Jual Konsumen (Satuan)** | **Harga Jual Konsumen (Satuan)**")
+        st.markdown("**Merk Rokok** | **Harga Jual Konsumen (dalam Rupiah)**")
         harga_inputs = {}
         for merk in active_merks:
             # Mengambil nilai harga_konsumen dari master file JSON, default ke 0 jika kosong
