@@ -39,20 +39,21 @@ tab_stock, tab1, tab2, tab3, tab4 = st.tabs([
     "⚙️ Reset & Hapus Data"
 ])
 
-# ================= TAB 0: STOCK ROKOK (BON, STOK KEMARIN, STOK AWAL HARI INI) =================
+# ================= TAB 0: STOCK ROKOK (BON MULTI-MERK, KEMARIN, & STOK AWAL) =================
 with tab_stock:
-    st.subheader("📦 Manajemen Stock Rokok & Bon Pagi")
-    st.markdown("Kelola nomor bon manual, pantau sisa stock kemarin, serta lihat kalkulasi stock awal hari ini.")
+    st.subheader("📦 Manajemen Stock Rokok & Bon Multi-Merk")
+    st.markdown("Input 1 nomor bon untuk sekaligus banyak merk rokok, pantau sisa stock kemarin, serta kalkulasi stock awal hari ini.")
 
-    # 1. Form Pencatatan Bon Rokok
-    with st.expander("➕ Tambah Bon Rokok Baru", expanded=True):
-        with st.form("form_bon_stock", clear_on_submit=True):
-            col_b1, col_b2 = st.columns(2)
-            with col_b1:
-                nomor_bon = st.text_input("Nomor Bon Rokok (Manual)", placeholder="Contoh: BON/2026/XI/001")
-                team_bon = st.text_input("Nama Team / Promotor / Pemohon", placeholder="Contoh: SPG Zona Barat - Siska")
-            with col_b2:
-                merk_bon = st.selectbox("Merk Rokok", list_merk)
+    # 1. Form Pencatatan Bon Rokok Multi-Merk
+    with st.expander("➕ Input Bon Rokok Baru (Multi-Merk)", expanded=True):
+        with st.form("form_bon_multimerk"):
+            st.markdown("#### Informasi Umum Bon")
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                nomor_bon = st.text_input("Nomor Bon Rokok (Manual)", placeholder="Contoh: BON/2026/001")
+            with c2:
+                team_bon = st.text_input("Nama Team / Promotor / Pemohon", placeholder="Contoh: Siska - Zona Barat")
+            with c3:
                 keperluan_bon = st.selectbox("Keperluan Bon", [
                     "Dirsell SPG", 
                     "Event Pameran", 
@@ -62,42 +63,83 @@ with tab_stock:
                     "Lainnya"
                 ])
 
-            st.markdown("#### Rincian Satuan Rokok yang Di-bon")
-            sc1, sc2, sc3 = st.columns(3)
-            with sc1:
-                bon_ball = st.number_input("Jumlah (Ball)", min_value=0, value=0)
-            with sc2:
-                bon_slop = st.number_input("Jumlah (Slop)", min_value=0, value=0)
-            with sc3:
-                bon_bungkus = st.number_input("Jumlah (Bungkus)", min_value=0, value=0)
+            st.markdown("---")
+            st.markdown("#### Daftar Merk Rokok dalam Bon Ini")
+            st.markdown("Pilih merk rokok dan masukkan jumlah satuannya. Baris kosong akan diabaikan.")
 
-            keterangan_bon = st.text_input("Keterangan Tambahan", placeholder="Catatan opsional...")
-            simpan_bon = st.form_submit_button("Simpan Bon Rokok")
+            # Menyiapkan 10 baris input default (bisa ditambah via session state jika kurang)
+            if "jumlah_baris_bon" not in st.session_state:
+                st.session_state.jumlah_baris_bon = 10
 
-            if simpan_bon:
+            item_bon_list = []
+            for i in range(st.session_state.jumlah_baris_bon):
+                st.markdown(f"**Item ke-{i+1}**")
+                col_m, col_b, col_s, col_bu = st.columns([3, 1, 1, 1])
+                with col_m:
+                    m_pilih = st.selectbox(f"Merk Rokok #{i+1}", ["-"] + list_merk, key=f"bon_m_{i}")
+                with col_b:
+                    b_ball = st.number_input(f"Ball #{i+1}", min_value=0, value=0, key=f"bon_b_{i}")
+                with col_s:
+                    s_slop = st.number_input(f"Slop #{i+1}", min_value=0, value=0, key=f"bon_s_{i}")
+                with col_bu:
+                    bu_bungkus = st.number_input(f"Bungkus #{i+1}", min_value=0, value=0, key=f"bon_bu_{i}")
+
+                if m_pilih != "-":
+                    item_bon_list.append({
+                        "merk": m_pilih,
+                        "ball": b_ball,
+                        "slop": s_slop,
+                        "bungkus": bu_bungkus
+                    })
+
+            # Tombol tambah baris di dalam form / di luar form (Streamlit menangani interaksi tombol tambah baris)
+            col_btn1, col_btn2 = st.columns([1, 4])
+            with col_btn1:
+                tambah_baris_btn = st.form_submit_button("➕ Tambah 5 Baris Lagi")
+            with col_btn2:
+                simpan_semua_bon = st.form_submit_button("💾 Simpan Semua Bon Ini", type="primary")
+
+            if tambah_baris_btn:
+                st.session_state.jumlah_baris_bon += 5
+                st.rerun()
+
+            if simpan_semua_bon:
                 if not nomor_bon:
                     st.error("Nomor Bon wajib diisi!")
+                elif not item_bon_list:
+                    st.error("Pilih minimal 1 merk rokok yang di-bon!")
                 else:
-                    master_item = dict_master_detail.get(merk_bon, {"slop": 10})
-                    slop_per_ball = master_item.get("slop", 10)
-                    bungkus_per_slop = 10
-                    
-                    total_setara_bungkus = (bon_ball * slop_per_ball * bungkus_per_slop) + (bon_slop * bungkus_per_slop) + bon_bungkus
-                    
-                    new_bon_row = {
-                        "ID": nomor_bon,
-                        "Tanggal": str(selected_date),
-                        "Team/Promotor": team_bon if team_bon else "Tanpa Nama",
-                        "Merk Rokok": merk_bon,
-                        "Ball": bon_ball,
-                        "Slop": bon_slop,
-                        "Bungkus": bon_bungkus,
-                        "Total Setara Bungkus": total_setara_bungkus,
-                        "Keperluan": keperluan_bon,
-                        "Keterangan": keterangan_bon
-                    }
-                    st.session_state.df_bon = pd.concat([st.session_state.df_bon, pd.DataFrame([new_bon_row])], ignore_index=True)
-                    st.success(f"✅ Bon rokok dengan No. **{nomor_bon}** berhasil disimpan!")
+                    sukses_count = 0
+                    for item in item_bon_list:
+                        merk = item["merk"]
+                        b = item["ball"]
+                        s = item["slop"]
+                        bu = item["bungkus"]
+                        
+                        master_item = dict_master_detail.get(merk, {"slop": 10})
+                        slop_per_ball = master_item.get("slop", 10)
+                        bungkus_per_slop = 10
+                        total_setara = (b * slop_per_ball * bungkus_per_slop) + (s * bungkus_per_slop) + bu
+                        
+                        if total_setara > 0:
+                            new_row = {
+                                "ID": nomor_bon,
+                                "Tanggal": str(selected_date),
+                                "Team/Promotor": team_bon if team_bon else "Tanpa Nama",
+                                "Merk Rokok": merk,
+                                "Ball": b,
+                                "Slop": s,
+                                "Bungkus": bu,
+                                "Total Setara Bungkus": total_setara,
+                                "Keperluan": keperluan_bon,
+                                "Keterangan": f"Bon Multi-Merk No: {nomor_bon}"
+                            }
+                            st.session_state.df_bon = pd.concat([st.session_state.df_bon, pd.DataFrame([new_row])], ignore_index=True)
+                            sukses_count += 1
+
+                    st.success(f"✅ Berhasil menyimpan {sukses_count} item merk rokok untuk Bon No. **{nomor_bon}**!")
+                    st.session_state.jumlah_baris_bon = 10 # reset
+                    st.rerun()
 
     st.divider()
 
@@ -121,15 +163,12 @@ with tab_stock:
     # 3. List Rokok Stock Awal Hari Ini (Sisa Stock Kemarin + Bon Rokok Hari Ini)
     st.markdown("### 📈 List Stock Awal Hari Ini (Sisa Kemarin + Bon Hari Ini)")
     
-    # Ambil data bon hari ini
     df_bon_hari_ini = pd.DataFrame()
     if not st.session_state.df_bon.empty:
         df_bon_hari_ini = st.session_state.df_bon[st.session_state.df_bon["Tanggal"] == str(selected_date)]
 
-    # Buat ringkasan stock awal gabungan per Team dan Merk Rokok
     combined_data = []
     
-    # Masukkan sisa kemarin sebagai basis
     if not df_kemarin.empty:
         for _, row in df_kemarin.iterrows():
             combined_data.append({
@@ -140,7 +179,6 @@ with tab_stock:
                 "Total Stock Awal": row["Stok Akhir"]
             })
 
-    # Tambahkan atau gabungkan dengan bon hari ini
     if not df_bon_hari_ini.empty:
         for _, bon_row in df_bon_hari_ini.iterrows():
             team = bon_row["Team/Promotor"]
@@ -167,7 +205,7 @@ with tab_stock:
         df_stock_awal = pd.DataFrame(combined_data)
         st.dataframe(df_stock_awal, use_container_width=True)
     else:
-        st.info("Belum ada data kalkulasi stock awal untuk hari ini (pastikan ada data sisa kemarin atau bon hari ini).")
+        st.info("Belum ada data kalkulasi stock awal untuk hari ini.")
 
 # ================= TAB 1: INPUT TRANSAKSI =================
 with tab1:
@@ -225,8 +263,6 @@ with tab1:
 # ================= TAB 2: TABEL REKAP & EDIT (ST.DATA_EDITOR) =================
 with tab2:
     st.subheader("📊 Tabel Rekapitulasi & Edit Data Transaksi")
-    st.markdown("Anda dapat langsung mengedit sel di bawah ini secara inline menggunakan tabel interaktif, atau menghapus baris tertentu.")
-
     if not st.session_state.df_transaksi.empty:
         edited_df = st.data_editor(
             st.session_state.df_transaksi,
@@ -234,46 +270,30 @@ with tab2:
             use_container_width=True,
             key="editable_transaction_table"
         )
-        
         if not edited_df.equals(st.session_state.df_transaksi):
             st.session_state.df_transaksi = edited_df
             st.rerun()
 
         st.divider()
-        st.markdown("### Menu Hapus Spesifik (Per Baris / Per Hari / Per Team)")
-        
         col_del1, col_del2 = st.columns(2)
         with col_del1:
-            st.text("Hapus Berdasarkan ID Baris")
             row_ids = st.session_state.df_transaksi["ID"].tolist()
             selected_id_to_delete = st.selectbox("Pilih ID Baris yang ingin dihapus", options=["-"] + row_ids)
             if st.button("Hapus Baris Terpilih"):
                 if selected_id_to_delete != "-":
                     st.session_state.df_transaksi = st.session_state.df_transaksi[st.session_state.df_transaksi["ID"] != selected_id_to_delete]
-                    st.success(f"Baris dengan ID {selected_id_to_delete} berhasil dihapus!")
+                    st.success("Baris berhasil dihapus!")
                     st.rerun()
-
         with col_del2:
-            st.text("Hapus Berdasarkan Hari (Tanggal)")
             unique_dates = st.session_state.df_transaksi["Tanggal"].unique().tolist()
             selected_date_to_delete = st.selectbox("Pilih Tanggal yang ingin dihapus total", options=["-"] + unique_dates)
             if st.button("Hapus Data Hari Ini"):
                 if selected_date_to_delete != "-":
                     st.session_state.df_transaksi = st.session_state.df_transaksi[st.session_state.df_transaksi["Tanggal"] != selected_date_to_delete]
-                    st.success(f"Seluruh data pada tanggal {selected_date_to_delete} berhasil dihapus!")
+                    st.success("Data tanggal terpilih berhasil dihapus!")
                     st.rerun()
-
-        st.divider()
-        unique_teams = st.session_state.df_transaksi["Team/Promotor"].unique().tolist()
-        selected_team_to_delete = st.selectbox("Pilih Team / Promotor yang ingin dihapus datanya", options=["-"] + unique_teams)
-        if st.button("Hapus Data Team Terpilih"):
-            if selected_team_to_delete != "-":
-                st.session_state.df_transaksi = st.session_state.df_transaksi[st.session_state.df_transaksi["Team/Promotor"] != selected_team_to_delete]
-                st.success(f"Seluruh data untuk team {selected_team_to_delete} berhasil dihapus!")
-                st.rerun()
-
     else:
-        st.info("Belum ada data transaksi tercatat. Silakan isi melalui tab **Input Transaksi**.")
+        st.info("Belum ada data transaksi tercatat.")
 
 # ================= TAB 3: MANAJEMEN BON =================
 with tab3:
@@ -294,7 +314,7 @@ with tab3:
         if st.button("Hapus Bon Terpilih"):
             if del_bon_id != "-":
                 st.session_state.df_bon = st.session_state.df_bon[st.session_state.df_bon["ID"] != del_bon_id]
-                st.success(f"Bon dengan ID {del_bon_id} berhasil dihapus!")
+                st.success("Bon berhasil dihapus!")
                 st.rerun()
     else:
         st.info("Belum ada data bon rokok tercatat.")
@@ -302,19 +322,15 @@ with tab3:
 # ================= TAB 4: RESET & HAPUS ALL (ADMIN ONLY) =================
 with tab4:
     st.subheader("⚙️ Zona Administratif: Reset & Hapus Keseluruhan")
-    
     if role != "Admin":
         st.warning("⚠️ Menu ini dikunci dan hanya dapat diakses oleh **Admin**.")
     else:
-        st.error("Tindakan di bawah ini akan menghapus seluruh database transaksi dan bon secara permanen.")
-        
         confirm_checkbox = st.checkbox("Saya mengerti risiko dan ingin menghapus seluruh data.")
-        
         if st.button("🗑️ HAPUS SEMUA DATA (RESET ALL)", type="primary"):
             if confirm_checkbox:
                 st.session_state.df_transaksi = pd.DataFrame(columns=st.session_state.df_transaksi.columns)
                 st.session_state.df_bon = pd.DataFrame(columns=st.session_state.df_bon.columns)
-                st.success("Semua data berhasil dibersihkan (Reset All)!")
+                st.success("Semua data berhasil dibersihkan!")
                 st.rerun()
             else:
-                st.warning("Mohon centang kotak konfirmasi terlebih dahulu sebelum melakukan Hapus Semua.")
+                st.warning("Centang kotak konfirmasi terlebih dahulu.")
