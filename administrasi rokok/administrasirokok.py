@@ -120,9 +120,9 @@ with tab_stock:
             
             c1, c2 = st.columns(2)
             with c1:
-                nomor_bon = st.text_input("No Bon", placeholder="Contoh: bon111")
+                nomor_bon = st.text_input("No Bon", placeholder="Contoh: Bon111")
             with c2:
-                team_bon = st.text_input("Nama (Promotor / Team)", placeholder="Contoh: Beni")
+                team_bon = st.text_input("Nama Pengebon", placeholder="Contoh: Beni")
 
             c3, c4 = st.columns(2)
             with c3:
