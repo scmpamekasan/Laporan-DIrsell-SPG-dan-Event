@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import os
 
-MASTER_HARGA_FILE = "master_harga_rokok_lengkap.json"
+MASTER_HARGA_FILE = "master_harga_rokok.json"
 
 def load_master_harga():
     if os.path.exists(MASTER_HARGA_FILE):
