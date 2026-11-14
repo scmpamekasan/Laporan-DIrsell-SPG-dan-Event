@@ -344,7 +344,7 @@ with tab1:
 
     with st.form(f"form_transaksi_layout_{st.session_state.trx_form_reset_id}", clear_on_submit=True):
         
-        st.markdown("**Pilih Merk Rokok & Stock Awal (Stok Akhir Terakhir + Bon Hari Ini)**")
+        st.markdown("**Pilih Merk Rokok & Stock Awal (Stock Kemarin + Bon Hari Ini)**")
         stok_awal_values = {}
         
         for merk in active_merks:
