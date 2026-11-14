@@ -455,14 +455,17 @@ with tab2:
         grand_total_konsumen = df_filtered["Total Setoran Konsumen"].sum()
         grand_total_kanvas = df_filtered["Total Setoran Kanvas"].sum()
         total_terjual = df_filtered["Terjual"].sum()
+        total_lain = df_filtered["Rokok Lain-lain"].sum() if "Rokok Lain-lain" in df_filtered.columns else 0
 
-        col_gt1, col_gt2, col_gt3 = st.columns(3)
+        col_gt1, col_gt2, col_gt3, col_gt4 = st.columns(4)
         with col_gt1:
             st.metric("Total Rokok Terjual", f"{total_terjual:,.0f} Bks")
         with col_gt2:
-            st.metric("Grand Total Setoran Kanvas", f"Rp {grand_total_kanvas:,.0f}")
+            st.metric("Total Rokok Lain-lain", f"{total_lain:,.0f} Bks")
         with col_gt3:
-            st.metric("🎯 Grand Total Setoran Konsumen", f"Rp {grand_total_konsumen:,.0f}")
+            st.metric("Grand Total Kanvas", f"Rp {grand_total_kanvas:,.0f}")
+        with col_gt4:
+            st.metric("🎯 Total Setoran Konsumen", f"Rp {grand_total_konsumen:,.0f}")
 
         st.markdown("---")
 
@@ -482,6 +485,7 @@ with tab2:
                 "Team/Promotor": "first",
                 "Tanggal": "first",
                 "Terjual": "sum",
+                "Rokok Lain-lain": "sum",
                 "Total Setoran Kanvas": "sum",
                 "Total Setoran Konsumen": "sum"
             }).reset_index()
@@ -492,6 +496,7 @@ with tab2:
         st.markdown("### 👥 Rekapitulasi Berdasarkan Team / Promotor")
         df_rekap_team = st.session_state.df_transaksi.groupby("Team/Promotor").agg({
             "Terjual": "sum",
+            "Rokok Lain-lain": "sum",
             "Total Setoran Kanvas": "sum",
             "Total Setoran Konsumen": "sum"
         }).reset_index()
