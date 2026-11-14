@@ -3,6 +3,57 @@ import pandas as pd
 from datetime import datetime, timedelta
 import uuid
 import io
+import gspread
+from google.oauth2.service_account import Credentials
+import json
+
+def backup_to_google_sheets():
+    try:
+        if "gcp_service_account" not in st.secrets:
+            st.error("⚠️ Kredensial Google Service Account belum diset di Streamlit Secrets (`st.secrets['gcp_service_account']`)!")
+            return False, None
+
+        scope = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+        client = gspread.authorize(creds)
+
+        spreadsheet_name = "Backup_Data_Administrasi_Rokok"
+        try:
+            sh = client.open(spreadsheet_name)
+        except gspread.SpreadsheetNotFound:
+            sh = client.create(spreadsheet_name)
+
+        # 1. Backup Data Transaksi
+        if not st.session_state.df_transaksi.empty:
+            try:
+                worksheet_trx = sh.worksheet("Data_Transaksi")
+            except gspread.WorksheetNotFound:
+                worksheet_trx = sh.add_worksheet(title="Data_Transaksi", rows="1000", cols="20")
+            
+            worksheet_trx.clear()
+            data_trx_to_upload = [st.session_state.df_transaksi.columns.tolist()] + st.session_state.df_transaksi.astype(str).values.tolist()
+            worksheet_trx.update(data_trx_to_upload)
+
+        # 2. Backup Data Bon
+        if not st.session_state.df_bon.empty:
+            try:
+                worksheet_bon = sh.worksheet("Data_Bon")
+            except gspread.WorksheetNotFound:
+                worksheet_bon = sh.add_worksheet(title="Data_Bon", rows="1000", cols="20")
+            
+            worksheet_bon.clear()
+            data_bon_to_upload = [st.session_state.df_bon.columns.tolist()] + st.session_state.df_bon.astype(str).values.tolist()
+            worksheet_bon.update(data_bon_to_upload)
+
+        return True, sh.url
+    except Exception as e:
+        st.error(f"Gagal melakukan backup: {e}")
+        return False, None
 
 from app_config import setup_page_config, apply_custom_styling
 from date_utils import get_current_week_label, format_date_indo
@@ -732,12 +783,25 @@ with tab3:
     else:
         st.info("Belum ada data bon rokok tercatat.")
 
-# ================= TAB 5: RESET & HAPUS ALL (ADMIN ONLY) =================
+# ================= TAB 5: RESET, HAPUS & BACKUP (ADMIN ONLY) =================
 with tab4:
-    st.subheader("⚙️ Zona Administratif: Reset & Hapus Keseluruhan")
+    st.subheader("⚙️ Zona Administratif: Backup & Reset Data")
     if role != "Admin":
         st.warning("⚠️ Menu ini dikunci dan hanya dapat diakses oleh **Admin**.")
     else:
+        st.markdown("### ☁️ Backup Otomatis ke Google Sheets")
+        st.markdown("Tekan tombol di bawah ini untuk mencadangkan seluruh data transaksi dan bon terbaru ke Google Sheets secara instan dengan satu klik.")
+
+        if st.button("🚀 Satu Klik Backup ke Google Sheets", type="primary"):
+            with st.spinner("Sedang memproses backup data ke Google Sheets..."):
+                success, sheet_url = backup_to_google_sheets()
+                if success:
+                    st.success("✅ Berhasil melakukan backup seluruh data ke Google Sheets!")
+                    st.markdown(f"🔗 **[Buka Google Sheets Hasil Backup]({sheet_url})**")
+
+        st.divider()
+
+        st.markdown("### 🗑️ Zona Bahaya: Reset & Hapus Keseluruhan")
         confirm_checkbox = st.checkbox("Saya mengerti risiko dan ingin menghapus seluruh data.")
         if st.button("🗑️ HAPUS SEMUA DATA (RESET ALL)", type="primary"):
             if confirm_checkbox:
