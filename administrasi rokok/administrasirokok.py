@@ -71,7 +71,7 @@ dict_master_detail = {item["merk"]: item for item in master_rokok}
 
 # Header Utama
 st.title("🚬 Sistem Administrasi Stok & Penjualan Rokok")
-st.markdown("Pencatatan stok awal, akhir, bon keperluan, rokok gantung/belum selesai, serta setoran harga kanvas vs konsumen.")
+st.markdown("Pencatatan Stok Rokok - Bon Rokok - Rokok Gantung/Belum Selesai - Setoran Hasil Penjualan")
 
 
 # --- SIDEBAR: NAVIGASI & ROLE ---
