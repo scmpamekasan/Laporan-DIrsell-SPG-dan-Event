@@ -386,12 +386,11 @@ with tab1:
                 st.session_state["last_trx_msg"] = f"✅ Berhasil menyimpan {saved_count} data transaksi untuk No Bon **{input_no_bon}**!"
                 st.rerun()
 
-# ================= TAB 2: TABEL REKAP & EDIT (DENGAN REKAP PER BON, TEAM, & GRAND TOTAL) =================
+# ================= TAB 2: TABEL REKAP & EDIT (DENGAN FILTER TEAM/PROMOTOR) =================
 with tab2:
     st.subheader("📊 Tabel Rekapitulasi & Edit Data Transaksi")
     
     if not st.session_state.df_transaksi.empty:
-        # Pastikan kolom No Bon ada (jika data lama belum ada, ambil dari Keperluan Bon atau ID)
         if "No Bon" not in st.session_state.df_transaksi.columns:
             st.session_state.df_transaksi["No Bon"] = st.session_state.df_transaksi["ID"]
 
@@ -408,12 +407,25 @@ with tab2:
 
         st.divider()
 
-        # --- GRAND TOTAL Keseluruhan & Sisa Stock per Merk ---
-        st.markdown("### 💰 Grand Total & Ringkasan Keuangan")
+        # --- FILTER TEAM / PROMOTOR ---
+        st.markdown("### 🔍 Filter Berdasarkan Team / Promotor")
+        list_teams = ["Semua Team"] + st.session_state.df_transaksi["Team/Promotor"].unique().tolist()
+        selected_filter_team = st.selectbox("Pilih Team / Promotor untuk Filter Ringkasan", options=list_teams)
+
+        # Filter dataframe sesuai pilihan
+        if selected_filter_team == "Semua Team":
+            df_filtered = st.session_state.df_transaksi
+        else:
+            df_filtered = st.session_state.df_transaksi[st.session_state.df_transaksi["Team/Promotor"] == selected_filter_team]
+
+        st.markdown("---")
+
+        # --- GRAND TOTAL & RINGKASAN KEUANGAN (BERDASARKAN FILTER) ---
+        st.markdown(f"### 💰 Grand Total & Ringkasan Keuangan ({selected_filter_team})")
         
-        grand_total_konsumen = st.session_state.df_transaksi["Total Setoran Konsumen"].sum()
-        grand_total_kanvas = st.session_state.df_transaksi["Total Setoran Kanvas"].sum()
-        total_terjual = st.session_state.df_transaksi["Terjual"].sum()
+        grand_total_konsumen = df_filtered["Total Setoran Konsumen"].sum()
+        grand_total_kanvas = df_filtered["Total Setoran Kanvas"].sum()
+        total_terjual = df_filtered["Terjual"].sum()
 
         col_gt1, col_gt2, col_gt3 = st.columns(3)
         with col_gt1:
@@ -425,11 +437,14 @@ with tab2:
 
         st.markdown("---")
 
-        # Total Sisa Stock Akhir per Merk
-        st.markdown("### 📦 Total Sisa Stock Akhir (Sisa Fisik) per Merk Rokok")
-        df_sisa_merk = st.session_state.df_transaksi.groupby("Merk Rokok")["Stok Akhir"].sum().reset_index()
-        df_sisa_merk.columns = ["Merk Rokok", "Total Sisa Stok Akhir (Bungkus)"]
-        st.dataframe(df_sisa_merk, use_container_width=True)
+        # --- TOTAL SISA STOCK AKHIR PER MERK (BERDASARKAN FILTER) ---
+        st.markdown(f"### 📦 Total Sisa Stock Akhir (Sisa Fisik) per Merk Rokok ({selected_filter_team})")
+        if not df_filtered.empty:
+            df_sisa_merk = df_filtered.groupby("Merk Rokok")["Stok Akhir"].sum().reset_index()
+            df_sisa_merk.columns = ["Merk Rokok", "Total Sisa Stok Akhir (Bungkus)"]
+            st.dataframe(df_sisa_merk, use_container_width=True)
+        else:
+            st.info("Tidak ada data untuk team ini.")
 
         st.markdown("---")
 
