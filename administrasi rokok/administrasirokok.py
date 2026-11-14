@@ -76,13 +76,17 @@ st.markdown("Pencatatan stok awal, akhir, bon keperluan, rokok gantung/belum sel
 
 # --- SIDEBAR: NAVIGASI & ROLE ---
 try:
-    # Mengambil path absolut berdasarkan letak file administrasirokok.py
-    dir_path = os.path.dirname(os.path.abspath(__file__))
-    logo_path = os.path.join(dir_path, "SCMlogo.png")
-    
-    st.sidebar.image(logo_path, width=70)
+    # Membuat 3 kolom di dalam sidebar untuk memposisikan logo di tengah
+    col1, col2, col3 = st.sidebar.columns([1, 2, 1])
+    with col2:
+        dir_path = os.path.dirname(os.path.abspath(__file__))
+        logo_path = os.path.join(dir_path, "SCMlogo.png")
+        # Ukuran width diperbesar menjadi 120 (atau sesuaikan kebutuhan)
+        st.image(logo_path, width=120)
 except Exception:
-    st.sidebar.image("https://img.icons8.com/color/96/wooden-crate.png", width=100)
+    col1, col2, col3 = st.sidebar.columns([1, 2, 1])
+    with col2:
+        st.image("https://img.icons8.com/color/96/wooden-crate.png", width=120)
 
 st.sidebar.header("Menu")
 role = st.sidebar.selectbox("User Login", ["Promotor", "PIC Dirsell & Event", "Admin"])
