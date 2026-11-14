@@ -30,7 +30,6 @@ BON_COLUMNS = [
     "Bungkus",
     "Total Setara Bungkus",
     "Keperluan",
-    "Masuk Stok",
     "Keterangan",
 ]
 
