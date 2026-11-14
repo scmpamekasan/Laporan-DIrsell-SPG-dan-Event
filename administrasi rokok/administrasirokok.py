@@ -156,9 +156,7 @@ with tab_stock:
     # Ambil data transaksi sebelumnya (kondisi stok akhir dari tanggal paling baru sebelum hari ini)
     df_terakhir = pd.DataFrame()
     if not st.session_state.df_transaksi.empty:
-        # Urutkan berdasarkan tanggal descending untuk mengambil yang paling baru
         df_sorted_trx = st.session_state.df_transaksi.sort_values(by="Tanggal", ascending=False)
-        # Ambil stok akhir dari entri transaksi terakhir per promotor dan merk
         df_terakhir = df_sorted_trx.drop_duplicates(subset=["Team/Promotor", "Merk Rokok"], keep="first")
         
     df_bon_hari_ini = pd.DataFrame()
@@ -168,13 +166,15 @@ with tab_stock:
     combined_data = []
     if not df_terakhir.empty:
         for _, row in df_terakhir.iterrows():
-            combined_data.append({
-                "Team/Promotor": row["Team/Promotor"],
-                "Merk Rokok": row["Merk Rokok"],
-                "Stok Terakhir": row["Stok Akhir"],
-                "Bon Hari Ini (Bungkus)": 0,
-                "Total Stock Awal": row["Stok Akhir"]
-            })
+            # Hanya masukkan jika sisa stok terakhirnya > 0
+            if row["Stok Akhir"] > 0:
+                combined_data.append({
+                    "Team/Promotor": row["Team/Promotor"],
+                    "Merk Rokok": row["Merk Rokok"],
+                    "Stok Terakhir": row["Stok Akhir"],
+                    "Bon Hari Ini (Bungkus)": 0,
+                    "Total Stock Awal": row["Stok Akhir"]
+                })
 
     if not df_bon_hari_ini.empty:
         for _, bon_row in df_bon_hari_ini.iterrows():
@@ -190,18 +190,23 @@ with tab_stock:
                     found = True
                     break
             if not found:
-                combined_data.append({
-                    "Team/Promotor": team,
-                    "Merk Rokok": merk,
-                    "Stok Terakhir": 0,
-                    "Bon Hari Ini (Bungkus)": qty_bon,
-                    "Total Stock Awal": qty_bon
-                })
+                if qty_bon > 0:
+                    combined_data.append({
+                        "Team/Promotor": team,
+                        "Merk Rokok": merk,
+                        "Stok Terakhir": 0,
+                        "Bon Hari Ini (Bungkus)": qty_bon,
+                        "Total Stock Awal": qty_bon
+                    })
 
-    if combined_data:
-        st.dataframe(pd.DataFrame(combined_data), use_container_width=True)
+    # Filter tambahan untuk memastikan hanya data dengan Total Stock Awal > 0 yang muncul
+    final_combined_data = [item for item in combined_data if item["Total Stock Awal"] > 0]
+
+    if final_combined_data:
+        st.dataframe(pd.DataFrame(final_combined_data), use_container_width=True)
     else:
-        st.info("Belum ada data riwayat stok terakhir atau bon untuk hari ini.")
+        st.info("Tidak ada sisa stok aktif atau bon baru untuk hari ini (semua stok bernilai 0 / habis).")
+        
 
 # ================= TAB 1: INPUT TRANSAKSI =================
 with tab1:
