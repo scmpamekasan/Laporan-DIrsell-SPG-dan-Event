@@ -372,7 +372,7 @@ with tab1:
 
             c_m, c_v = st.columns([3, 2])
             with c_m:
-                st.markdown(f"🔹 **{merk}**")
+                st.markdown(f"🚬 **{merk}**")
             with c_v:
                 st.markdown(f"📦 **{val_awal:,} bks** *(Stok Terakhir: {stok_terakhir} + Bon: {bon_hari_ini})*")
 
