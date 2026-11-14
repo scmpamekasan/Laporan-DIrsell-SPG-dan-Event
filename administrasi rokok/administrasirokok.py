@@ -399,7 +399,7 @@ with tab1:
                         "Stok Awal": s_awal,
                         "Stok Akhir": s_akhir,
                         "Belum Selesai": s_gantung,
-                        "Rokok Lain-lain": s_lain,
+                        "Rokok Lain-lain": s_lain
                         "Terjual": terjual,
                         "Harga Kanvas": h_kanvas,
                         "Harga Konsumen": h_konsumen,
