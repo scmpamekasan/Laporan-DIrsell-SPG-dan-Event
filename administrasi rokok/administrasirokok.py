@@ -82,9 +82,9 @@ try:
     
     st.sidebar.image(logo_path, width=70)
 except Exception:
-    st.sidebar.image("https://img.icons8.com/color/96/wooden-crate.png", width=70)
+    st.sidebar.image("https://img.icons8.com/color/96/wooden-crate.png", width=100)
 
-st.sidebar.header("Panel Navigasi")
+st.sidebar.header("Menu")
 role = st.sidebar.selectbox("User Login", ["Promotor", "PIC Dirsell & Event", "Admin"])
 
 st.sidebar.divider()
