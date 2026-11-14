@@ -611,7 +611,7 @@ with tab_lap_team:
         st.info("Belum ada data transaksi tercatat untuk dibuatkan laporan.")
         
 
-# ================= TAB 4: MANAJEMEN BON (DENGAN KONVERSI OTOMATIS DARI MASTER) =================
+# ================= TAB 4: MANAJEMEN BON (REKAP KONVERSI BALL, SLOP, BUNGKUS) =================
 with tab3:
     st.subheader("📋 Manajemen & Rekap Data Bon Rokok")
     st.markdown("Pilih beberapa keterangan sekaligus, lalu lihat ringkasan gabungan jumlah merk rokok lengkap dengan konversi otomatis Ball, Slop, & Bungkus.")
@@ -649,7 +649,7 @@ with tab3:
             df_bon_filtered = df_bon_filtered[df_bon_filtered["Team/Promotor"] == selected_team_bon_filter]
 
         st.markdown("---")
-        st.markdown("#### 📊 Ringkasan Gabungan Merk Rokok & Konversi Otomatis")
+        st.markdown("#### 📊 Ringkasan Gabungan Merk Rokok & Konversi Satuan")
 
         if not df_bon_filtered.empty:
             # 1. Group by Merk Rokok untuk menjumlahkan total bungkus mentahnya
@@ -657,21 +657,17 @@ with tab3:
                 "Total Setara Bungkus": "sum"
             }).reset_index()
 
-            # 2. Hubungkan (Merge) dengan Master Konversi dari file JSON (dict_master_detail)
-            # Setiap merk akan membawa data 'slop' dan 'bungkus' per ball dari file JSON
+            # 2. Hubungkan dengan Master Konversi dari file JSON (dict_master_detail)
             hasil_tabel_konversi = []
             for _, row in df_grouped_merk.iterrows():
                 merk_name = row["Merk Rokok"]
                 total_bks = row["Total Setara Bungkus"]
 
-                # Ambil data master untuk merk ini (default 1 Ball = 20 Slop = 200 Bks jika tidak ditemukan)
                 master_info = dict_master_detail.get(merk_name, {"slop": 20, "bungkus": 200, "harga_kanvas": 0})
                 
                 slop_per_ball = master_info.get("slop", 20)
                 bungkus_per_ball = master_info.get("bungkus", 200)
                 
-                # Hitung konversi otomatis berdasarkan standar master JSON
-                # Contoh: 1 Ball = slop_per_ball Slop = bungkus_per_ball Bungkus
                 bungkus_per_slop = 10
                 
                 ball = total_bks // bungkus_per_ball
@@ -682,22 +678,21 @@ with tab3:
 
                 hasil_tabel_konversi.append({
                     "Merk Rokok": merk_name,
-                    "Konversi Ball": int(ball),
-                    "Konversi Slop": int(slop),
-                    "Konversi Bungkus": int(bungkus),
+                    "Ball": int(ball),
+                    "Slop": int(slop),
+                    "Bungkus": int(bungkus)
                 })
 
             df_final_display = pd.DataFrame(hasil_tabel_konversi)
 
             # Tampilkan metrik ringkas
-            total_bks_all = df_final_display["Total Bungkus (Bks)"].sum()
             total_merk_unik = len(df_final_display)
             
             mc1, mc2 = st.columns(2)
             with mc1:
                 st.metric("Total Jenis Merk Rokok", f"{total_merk_unik} Merk")
             with mc2:
-                st.metric("Total Keseluruhan", f"{total_bks_all:,.0f} Bks")
+                st.metric("Status Filter", "Aktif")
 
             st.markdown("")
             st.markdown("##### 📌 Tabel Rekap Gabungan & Konversi Satuan")
