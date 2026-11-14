@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import uuid
 import io
+import os
 import gspread
 from google.oauth2.service_account import Credentials
 import json
@@ -72,9 +73,16 @@ dict_master_detail = {item["merk"]: item for item in master_rokok}
 st.title("🚬 Sistem Administrasi Stok & Penjualan Rokok")
 st.markdown("Pencatatan stok awal, akhir, bon keperluan, rokok gantung/belum selesai, serta setoran harga kanvas vs konsumen.")
 
-# --- SIDEBAR: NAVIGASI & ROLE ---
 
-st.sidebar.image("SCMlogo.png", width=70)
+# --- SIDEBAR: NAVIGASI & ROLE ---
+try:
+    # Mengambil path absolut berdasarkan letak file administrasirokok.py
+    dir_path = os.path.dirname(os.path.abspath(__file__))
+    logo_path = os.path.join(dir_path, "SCMlogo.png")
+    
+    st.sidebar.image(logo_path, width=70)
+except Exception:
+    st.sidebar.image("https://img.icons8.com/color/96/wooden-crate.png", width=70)
 
 st.sidebar.header("Panel Navigasi")
 role = st.sidebar.selectbox("User Login", ["Promotor", "PIC Dirsell & Event", "Admin"])
