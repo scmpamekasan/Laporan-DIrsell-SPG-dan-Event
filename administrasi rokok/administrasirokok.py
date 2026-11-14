@@ -39,7 +39,7 @@ tab_stock, tab1, tab2, tab3, tab4 = st.tabs([
     "⚙️ Reset & Hapus Data"
 ])
 
-# ================= TAB 0: STOCK ROKOK (BON MULTI-MERK DENGAN KETERANGAN) =================
+# ================= TAB 0: STOCK ROKOK (BON MULTI-MERK) =================
 with tab_stock:
     st.subheader("📦 Manajemen Stock Rokok & Bon Multi-Merk")
     st.markdown("Input 1 nomor bon untuk sekaligus banyak merk rokok, pantau sisa stock kemarin, serta kalkulasi stock awal hari ini.")
@@ -51,14 +51,12 @@ with tab_stock:
         with st.form(f"form_bon_multimerk_{st.session_state.bon_form_reset_id}", clear_on_submit=True):
             st.markdown("#### Informasi Umum Bon")
             
-            # Baris pertama informasi umum bon
             c1, c2 = st.columns(2)
             with c1:
                 nomor_bon = st.text_input("No Bon", placeholder="Contoh: bon111")
             with c2:
                 team_bon = st.text_input("Nama (Promotor / Team)", placeholder="Contoh: Beni")
 
-            # Baris kedua informasi umum bon (Keperluan & Keterangan Opsional)
             c3, c4 = st.columns(2)
             with c3:
                 keperluan_bon = st.selectbox("Keperluan Bon Utama", [
@@ -212,9 +210,16 @@ with tab1:
     if "last_trx_msg" in st.session_state and st.session_state["last_trx_msg"]:
         st.success(st.session_state.pop("last_trx_msg"))
 
-    available_bons = []
+    # Filter nomor bon: Hapus bon yang sudah pernah di-entry ke df_transaksi
+    all_bons = []
     if not st.session_state.df_bon.empty:
-        available_bons = st.session_state.df_bon["ID"].unique().tolist()
+        all_bons = st.session_state.df_bon["ID"].unique().tolist()
+    
+    used_bons = []
+    if not st.session_state.df_transaksi.empty and "No Bon" in st.session_state.df_transaksi.columns:
+        used_bons = st.session_state.df_transaksi["No Bon"].unique().tolist()
+
+    available_bons = [b for b in all_bons if b not in used_bons]
 
     selected_bon_id = st.selectbox(
         "🔍 Cari / Pilih No Bon", 
@@ -222,6 +227,7 @@ with tab1:
         key=f"select_bon_trx_{st.session_state.trx_form_reset_id}"
     )
 
+    # Ambil data otomatis berdasarkan pilihan dropdown bon
     default_team = ""
     selected_bon_rows = pd.DataFrame()
 
@@ -230,12 +236,16 @@ with tab1:
         if not selected_bon_rows.empty:
             default_team = selected_bon_rows.iloc[0]["Team/Promotor"]
 
+    # Jika memilih dari dropdown, field No Bon & Nama otomatis terisi dan terkunci/read-only atau langsung mengikat
+    val_no_bon = selected_bon_id if selected_bon_id != "- Manual Input -" else ""
+    val_nama = default_team if selected_bon_id != "- Manual Input -" else ""
+
     col_h1, col_h2 = st.columns(2)
     with col_h1:
         st.markdown("**No Bon**")
         input_no_bon = st.text_input(
             "No Bon Input", 
-            value=selected_bon_id if selected_bon_id != "- Manual Input -" else "", 
+            value=val_no_bon, 
             key=f"no_bon_in_{st.session_state.trx_form_reset_id}",
             label_visibility="collapsed"
         )
@@ -243,7 +253,7 @@ with tab1:
         st.markdown("**Nama**")
         input_nama = st.text_input(
             "Nama Input", 
-            value=default_team, 
+            value=val_nama, 
             placeholder="Nama Promotor / Team", 
             key=f"nama_in_{st.session_state.trx_form_reset_id}",
             label_visibility="collapsed"
@@ -394,7 +404,7 @@ with tab1:
                 st.session_state["last_trx_msg"] = f"✅ Berhasil menyimpan {saved_count} data transaksi untuk No Bon **{input_no_bon}**!"
                 st.rerun()
 
-# ================= TAB 2: TABEL REKAP & EDIT (DENGAN FILTER TEAM) =================
+# ================= TAB 2: TABEL REKAP & EDIT =================
 with tab2:
     st.subheader("📊 Tabel Rekapitulasi & Edit Data Transaksi")
     
