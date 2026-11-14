@@ -42,7 +42,7 @@ tab_stock, tab1, tab2, tab3, tab4 = st.tabs([
 # ================= TAB 0: STOCK ROKOK (BON MULTI-MERK) =================
 with tab_stock:
     st.subheader("📦 Manajemen Stock Rokok & Bon Multi-Merk")
-    st.markdown("Input 1 nomor bon untuk sekaligus banyak merk rokok, pantau sisa stock kemarin, serta kalkulasi stock awal hari ini.")
+    st.markdown("Input 1 nomor bon untuk sekaligus banyak merk rokok, pantau sisa stock terakhir, serta kalkulasi stock awal hari ini.")
 
     if "bon_form_reset_id" not in st.session_state:
         st.session_state.bon_form_reset_id = 0
@@ -151,23 +151,27 @@ with tab_stock:
 
     st.divider()
 
-    st.markdown("### 📉 Sisa Stock Rokok Kemarin & Stock Awal Hari Ini")
-    prev_date = selected_date - timedelta(days=1)
-    df_kemarin = pd.DataFrame()
+    st.markdown("### 📉 Sisa Stock Terakhir & Stock Awal Hari Ini")
+    
+    # Ambil data transaksi sebelumnya (kondisi stok akhir dari tanggal paling baru sebelum hari ini)
+    df_terakhir = pd.DataFrame()
     if not st.session_state.df_transaksi.empty:
-        df_kemarin = st.session_state.df_transaksi[st.session_state.df_transaksi["Tanggal"] == str(prev_date)]
+        # Urutkan berdasarkan tanggal descending untuk mengambil yang paling baru
+        df_sorted_trx = st.session_state.df_transaksi.sort_values(by="Tanggal", ascending=False)
+        # Ambil stok akhir dari entri transaksi terakhir per promotor dan merk
+        df_terakhir = df_sorted_trx.drop_duplicates(subset=["Team/Promotor", "Merk Rokok"], keep="first")
         
     df_bon_hari_ini = pd.DataFrame()
     if not st.session_state.df_bon.empty:
         df_bon_hari_ini = st.session_state.df_bon[st.session_state.df_bon["Tanggal"] == str(selected_date)]
 
     combined_data = []
-    if not df_kemarin.empty:
-        for _, row in df_kemarin.iterrows():
+    if not df_terakhir.empty:
+        for _, row in df_terakhir.iterrows():
             combined_data.append({
                 "Team/Promotor": row["Team/Promotor"],
                 "Merk Rokok": row["Merk Rokok"],
-                "Stok Kemarin": row["Stok Akhir"],
+                "Stok Terakhir": row["Stok Akhir"],
                 "Bon Hari Ini (Bungkus)": 0,
                 "Total Stock Awal": row["Stok Akhir"]
             })
@@ -182,14 +186,14 @@ with tab_stock:
             for item in combined_data:
                 if item["Team/Promotor"] == team and item["Merk Rokok"] == merk:
                     item["Bon Hari Ini (Bungkus)"] += qty_bon
-                    item["Total Stock Awal"] = item["Stok Kemarin"] + item["Bon Hari Ini (Bungkus)"]
+                    item["Total Stock Awal"] = item["Stok Terakhir"] + item["Bon Hari Ini (Bungkus)"]
                     found = True
                     break
             if not found:
                 combined_data.append({
                     "Team/Promotor": team,
                     "Merk Rokok": merk,
-                    "Stok Kemarin": 0,
+                    "Stok Terakhir": 0,
                     "Bon Hari Ini (Bungkus)": qty_bon,
                     "Total Stock Awal": qty_bon
                 })
@@ -197,7 +201,7 @@ with tab_stock:
     if combined_data:
         st.dataframe(pd.DataFrame(combined_data), use_container_width=True)
     else:
-        st.info("Belum ada data kalkulasi stock awal untuk hari ini.")
+        st.info("Belum ada data riwayat stok terakhir atau bon untuk hari ini.")
 
 # ================= TAB 1: INPUT TRANSAKSI =================
 with tab1:
@@ -287,25 +291,22 @@ with tab1:
 
     with st.form(f"form_transaksi_layout_{st.session_state.trx_form_reset_id}", clear_on_submit=True):
         
-        st.markdown("**Pilih Merk Rokok & Stock Awal (Sisa Stok Kemarin + Bon Hari Ini)**")
+        st.markdown("**Pilih Merk Rokok & Stock Awal (Stok Akhir Terakhir + Bon Hari Ini)**")
         stok_awal_values = {}
         
-        # Ambil tanggal kemarin dan tanggal hari ini
-        prev_date = selected_date - timedelta(days=1)
-        
         for merk in active_merks:
-            # 1. Hitung sisa stok kemarin (Stok Akhir dari transaksi tanggal kemarin untuk promotor & merk ini)
-            stok_kemarin = 0
+            # 1. Ambil kondisi Stok Akhir dari transaksi yang paling baru (tanggal terbaru) untuk promotor & merk ini
+            stok_terakhir = 0
             if current_active_nama and not st.session_state.df_transaksi.empty:
-                match_kemarin = st.session_state.df_transaksi[
-                    (st.session_state.df_transaksi["Tanggal"] == str(prev_date)) & 
-                    (st.session_state.df_transaksi["Team/Promotor"].str.lower() == current_active_nama.lower()) & 
-                    (st.session_state.df_transaksi["Merk Rokok"] == merk)
+                df_sorted_trx = st.session_state.df_transaksi.sort_values(by="Tanggal", ascending=False)
+                match_terakhir = df_sorted_trx[
+                    (df_sorted_trx["Team/Promotor"].str.lower() == current_active_nama.lower()) & 
+                    (df_sorted_trx["Merk Rokok"] == merk)
                 ]
-                if not match_kemarin.empty:
-                    stok_kemarin = int(match_kemarin.iloc[0]["Stok Akhir"])
+                if not match_terakhir.empty:
+                    stok_terakhir = int(match_terakhir.iloc[0]["Stok Akhir"])
 
-            # 2. Hitung bon hari ini (Total Setara Bungkus dari data bon untuk nomor/team & merk ini pada tanggal terpilih)
+            # 2. Ambil nilai bon hari ini untuk nomor bon & merk ini
             bon_hari_ini = 0
             if current_active_bon and not st.session_state.df_bon.empty:
                 match_bon = st.session_state.df_bon[
@@ -315,15 +316,15 @@ with tab1:
                 if not match_bon.empty:
                     bon_hari_ini = int(match_bon.iloc[0]["Total Setara Bungkus"])
 
-            # Total Stock Awal = Sisa Stok Kemarin + Bon Hari Ini
-            val_awal = stok_kemarin + bon_hari_ini
+            # Total Stock Awal = Stok Akhir Terakhir + Bon Hari Ini
+            val_awal = stok_terakhir + bon_hari_ini
             stok_awal_values[merk] = val_awal
 
             c_m, c_v = st.columns([3, 2])
             with c_m:
                 st.markdown(f"🔹 **{merk}**")
             with c_v:
-                st.markdown(f"📦 **{val_awal:,} bks** *(Kemarin: {stok_kemarin} + Bon: {bon_hari_ini})*")
+                st.markdown(f"📦 **{val_awal:,} bks** *(Stok Terakhir: {stok_terakhir} + Bon: {bon_hari_ini})*")
 
         st.markdown("---")
         st.markdown("**Rokok Belum Selesai / Gantung** | **Jumlah (dalam satuan bungkus)**")
@@ -493,10 +494,13 @@ with tab2:
 
         st.markdown("---")
 
-        st.markdown(f"### 📦 Total Sisa Stock Akhir (Sisa Fisik) per Merk Rokok ({selected_filter_team})")
+        st.markdown(f"### 📦 Kondisi Sisa Stock Akhir Terakhir per Merk Rokok ({selected_filter_team})")
         if not df_filtered.empty:
-            df_sisa_merk = df_filtered.groupby("Merk Rokok")["Stok Akhir"].sum().reset_index()
-            df_sisa_merk.columns = ["Merk Rokok", "Total Sisa Stok Akhir (Bungkus)"]
+            # Ambil stok akhir dari tanggal paling baru per merk untuk team yang difilter
+            df_sorted_all = df_filtered.sort_values(by="Tanggal", ascending=False)
+            df_latest_stock = df_sorted_all.drop_duplicates(subset=["Team/Promotor", "Merk Rokok"], keep="first")
+            df_sisa_merk = df_latest_stock.groupby("Merk Rokok")["Stok Akhir"].sum().reset_index()
+            df_sisa_merk.columns = ["Merk Rokok", "Sisa Stok Akhir Terakhir (Bungkus)"]
             st.dataframe(df_sisa_merk, use_container_width=True)
         else:
             st.info("Tidak ada data untuk team ini.")
