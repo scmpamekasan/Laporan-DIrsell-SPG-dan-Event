@@ -44,8 +44,12 @@ with tab_stock:
     st.subheader("📦 Manajemen Stock Rokok & Bon Multi-Merk")
     st.markdown("Input 1 nomor bon untuk sekaligus banyak merk rokok, pantau sisa stock kemarin, serta kalkulasi stock awal hari ini.")
 
+    # Gunakan counter untuk memaksa reset key form bon setiap kali sukses simpan
+    if "bon_form_reset_id" not in st.session_state:
+        st.session_state.bon_form_reset_id = 0
+
     with st.expander("➕ Input Bon Rokok Baru (Multi-Merk)", expanded=True):
-        with st.form("form_bon_multimerk"):
+        with st.form(f"form_bon_multimerk_{st.session_state.bon_form_reset_id}", clear_on_submit=True):
             st.markdown("#### Informasi Umum Bon")
             c1, c2, c3 = st.columns(3)
             with c1:
@@ -72,13 +76,13 @@ with tab_stock:
             for i in range(st.session_state.jumlah_baris_bon):
                 col_m, col_b, col_s, col_bu = st.columns([3, 1, 1, 1])
                 with col_m:
-                    m_pilih = st.selectbox(f"Merk Rokok #{i+1}", ["-"] + list_merk, key=f"bon_m_{i}")
+                    m_pilih = st.selectbox(f"Merk Rokok #{i+1}", ["-"] + list_merk, key=f"bon_m_{st.session_state.bon_form_reset_id}_{i}")
                 with col_b:
-                    b_ball = st.number_input(f"Ball #{i+1}", min_value=0, value=0, key=f"bon_b_{i}")
+                    b_ball = st.number_input(f"Ball #{i+1}", min_value=0, value=0, key=f"bon_b_{st.session_state.bon_form_reset_id}_{i}")
                 with col_s:
-                    s_slop = st.number_input(f"Slop #{i+1}", min_value=0, value=0, key=f"bon_s_{i}")
+                    s_slop = st.number_input(f"Slop #{i+1}", min_value=0, value=0, key=f"bon_s_{st.session_state.bon_form_reset_id}_{i}")
                 with col_bu:
-                    bu_bungkus = st.number_input(f"Bungkus #{i+1}", min_value=0, value=0, key=f"bon_bu_{i}")
+                    bu_bungkus = st.number_input(f"Bungkus #{i+1}", min_value=0, value=0, key=f"bon_bu_{st.session_state.bon_form_reset_id}_{i}")
 
                 if m_pilih != "-":
                     item_bon_list.append({
@@ -132,9 +136,14 @@ with tab_stock:
                             st.session_state.df_bon = pd.concat([st.session_state.df_bon, pd.DataFrame([new_row])], ignore_index=True)
                             sukses_count += 1
 
-                    st.success(f"✅ Berhasil menyimpan {sukses_count} item merk untuk No Bon **{nomor_bon}**!")
+                    # Reset seluruh form input ke awal
                     st.session_state.jumlah_baris_bon = 10
+                    st.session_state.bon_form_reset_id += 1
+                    st.session_state["last_bon_msg"] = f"✅ Berhasil menyimpan {sukses_count} item merk untuk No Bon **{nomor_bon}**!"
                     st.rerun()
+
+    if "last_bon_msg" in st.session_state and st.session_state["last_bon_msg"]:
+        st.success(st.session_state.pop("last_bon_msg"))
 
     st.divider()
 
@@ -187,16 +196,27 @@ with tab_stock:
     else:
         st.info("Belum ada data kalkulasi stock awal untuk hari ini.")
 
-# ================= TAB 1: INPUT TRANSAKSI (LAYOUT SESUAI GAMBAR) =================
+# ================= TAB 1: INPUT TRANSAKSI (AUTO-RESET SETELAH SIMPAN) =================
 with tab1:
     st.subheader("📝 Form Pencatatan Harian Transaksi & Stok")
-    st.markdown("Pilih Nomor Bon untuk menampilkan otomatis seluruh merk rokok sesuai layout[cite: 3].")
+    st.markdown("Pilih Nomor Bon untuk menampilkan otomatis seluruh merk rokok sesuai layout.")
+
+    # Gunakan counter untuk mereset dropdown bon dan seluruh input transaksi setelah simpan
+    if "trx_form_reset_id" not in st.session_state:
+        st.session_state.trx_form_reset_id = 0
+
+    if "last_trx_msg" in st.session_state and st.session_state["last_trx_msg"]:
+        st.success(st.session_state.pop("last_trx_msg"))
 
     available_bons = []
     if not st.session_state.df_bon.empty:
         available_bons = st.session_state.df_bon["ID"].unique().tolist()
 
-    selected_bon_id = st.selectbox("🔍 Cari / Pilih No Bon", options=["- Manual Input -"] + available_bons)
+    selected_bon_id = st.selectbox(
+        "🔍 Cari / Pilih No Bon", 
+        options=["- Manual Input -"] + available_bons,
+        key=f"select_bon_trx_{st.session_state.trx_form_reset_id}"
+    )
 
     default_team = ""
     selected_bon_rows = pd.DataFrame()
@@ -206,25 +226,35 @@ with tab1:
         if not selected_bon_rows.empty:
             default_team = selected_bon_rows.iloc[0]["Team/Promotor"]
 
-    # Header Layout Tabel Mirip Gambar (No Bon & Nama)
+    # Header Layout Tabel (No Bon & Nama)
     col_h1, col_h2 = st.columns(2)
     with col_h1:
         st.markdown("**No Bon**")
-        input_no_bon = st.text_input("No Bon Input", value=selected_bon_id if selected_bon_id != "- Manual Input -" else "", label_visibility="collapsed")
+        input_no_bon = st.text_input(
+            "No Bon Input", 
+            value=selected_bon_id if selected_bon_id != "- Manual Input -" else "", 
+            key=f"no_bon_in_{st.session_state.trx_form_reset_id}",
+            label_visibility="collapsed"
+        )
     with col_h2:
         st.markdown("**Nama**")
-        input_nama = st.text_input("Nama Input", value=default_team, placeholder="Nama Promotor / Team", label_visibility="collapsed")
+        input_nama = st.text_input(
+            "Nama Input", 
+            value=default_team, 
+            placeholder="Nama Promotor / Team", 
+            key=f"nama_in_{st.session_state.trx_form_reset_id}",
+            label_visibility="collapsed"
+        )
 
     st.markdown("---")
 
-    # Menentukan list merk yang akan diinput (berdasarkan bon atau master jika manual)
     active_merks = []
     if selected_bon_id != "- Manual Input -" and not selected_bon_rows.empty:
         active_merks = selected_bon_rows["Merk Rokok"].tolist()
     else:
-        active_merks = list_merk[:3]  # default beberapa merk jika manual
+        active_merks = list_merk[:3]
 
-    with st.form("form_transaksi_layout_baru"):
+    with st.form(f"form_transaksi_layout_{st.session_state.trx_form_reset_id}", clear_on_submit=True):
         
         # 1. Stok Awal
         st.markdown("**Pilih Merk Rokok yang akan diinput transaksinya** | **Stock Awal (dalam satuan Bungkus)**")
@@ -240,7 +270,13 @@ with tab1:
             with c_m:
                 st.text(merk)
             with c_v:
-                stok_awal_inputs[merk] = st.number_input(f"Awal_{merk}", min_value=0, value=default_val, label_visibility="collapsed")
+                stok_awal_inputs[merk] = st.number_input(
+                    f"Awal_{merk}", 
+                    min_value=0, 
+                    value=default_val, 
+                    key=f"awal_{st.session_state.trx_form_reset_id}_{merk}",
+                    label_visibility="collapsed"
+                )
 
         st.markdown("---")
 
@@ -252,7 +288,13 @@ with tab1:
             with c_m:
                 st.text(merk)
             with c_v:
-                gantung_inputs[merk] = st.number_input(f"Gantung_{merk}", min_value=0, value=0, label_visibility="collapsed")
+                gantung_inputs[merk] = st.number_input(
+                    f"Gantung_{merk}", 
+                    min_value=0, 
+                    value=0, 
+                    key=f"gantung_{st.session_state.trx_form_reset_id}_{merk}",
+                    label_visibility="collapsed"
+                )
 
         st.markdown("---")
 
@@ -264,7 +306,13 @@ with tab1:
             with c_m:
                 st.text(merk)
             with c_v:
-                akhir_inputs[merk] = st.number_input(f"Akhir_{merk}", min_value=0, value=0, label_visibility="collapsed")
+                akhir_inputs[merk] = st.number_input(
+                    f"Akhir_{merk}", 
+                    min_value=0, 
+                    value=0, 
+                    key=f"akhir_{st.session_state.trx_form_reset_id}_{merk}",
+                    label_visibility="collapsed"
+                )
 
         st.markdown("---")
 
@@ -277,11 +325,17 @@ with tab1:
             with c_m:
                 st.text(merk)
             with c_v:
-                harga_inputs[merk] = st.number_input(f"Harga_{merk}", min_value=0, value=int(def_harga), label_visibility="collapsed")
+                harga_inputs[merk] = st.number_input(
+                    f"Harga_{merk}", 
+                    min_value=0, 
+                    value=int(def_harga), 
+                    key=f"harga_{st.session_state.trx_form_reset_id}_{merk}",
+                    label_visibility="collapsed"
+                )
 
         st.markdown("---")
 
-        # 5. Pengeluaran Rokok Lain-lain (Bon Qty / Keperluan Bon)
+        # 5. Pengeluaran Rokok Lain-lain
         st.markdown("**Pengeluaran Rokok Lain-lain** | **Jumlah (dalam satuan bungkus)**")
         lain_inputs = {}
         for merk in active_merks:
@@ -289,7 +343,13 @@ with tab1:
             with c_m:
                 st.text(merk)
             with c_v:
-                lain_inputs[merk] = st.number_input(f"Lain_{merk}", min_value=0, value=0, label_visibility="collapsed")
+                lain_inputs[merk] = st.number_input(
+                    f"Lain_{merk}", 
+                    min_value=0, 
+                    value=0, 
+                    key=f"lain_{st.session_state.trx_form_reset_id}_{merk}",
+                    label_visibility="collapsed"
+                )
 
         st.markdown("")
         submitted_all = st.form_submit_button("💾 Simpan Seluruh Transaksi Harian Ini", type="primary")
@@ -331,7 +391,10 @@ with tab1:
                     st.session_state.df_transaksi = pd.concat([st.session_state.df_transaksi, pd.DataFrame([new_row])], ignore_index=True)
                     saved_count += 1
 
-                st.success(f"✅ Berhasil menyimpan {saved_count} data transaksi untuk No Bon **{input_no_bon}**!")
+                # Reset seluruh field dan dropdown ke kondisi awal
+                st.session_state.trx_form_reset_id += 1
+                st.session_state["last_trx_msg"] = f"✅ Berhasil menyimpan {saved_count} data transaksi untuk No Bon **{input_no_bon}**! Form telah di-reset."
+                st.rerun()
 
 # ================= TAB 2: TABEL REKAP & EDIT (ST.DATA_EDITOR) =================
 with tab2:
