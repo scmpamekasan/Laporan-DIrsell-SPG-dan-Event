@@ -188,10 +188,10 @@ with tab_stock:
     else:
         st.info("Belum ada data kalkulasi stock awal untuk hari ini.")
 
-# ================= TAB 1: INPUT TRANSAKSI (MENAMPILKAN SEMUA MERK DARI BON BESERTA STOKNYA) =================
+# ================= TAB 1: INPUT TRANSAKSI (DETAIL SEMUA MERK & STOK DARI BON) =================
 with tab1:
     st.subheader("Form Pencatatan Harian Stok & Penjualan")
-    st.markdown("Pilih Nomor Bon untuk menampilkan daftar lengkap seluruh merk rokok beserta rincian stoknya dari bon tersebut.")
+    st.markdown("Pilih Nomor Bon untuk menampilkan **rincian lengkap seluruh merk rokok beserta stoknya** secara transparan tanpa dropdown tersembunyi.")
 
     available_bons = []
     if not st.session_state.df_bon.empty:
@@ -209,25 +209,36 @@ with tab1:
             default_team = selected_bon_rows.iloc[0]["Team/Promotor"]
             default_keperluan = selected_bon_rows.iloc[0]["Keperluan"]
             
-            # Tampilkan tabel daftar semua merk beserta stoknya dari bon yang dipilih
-            st.markdown(f"#### 📋 Daftar Merk & Stok dari Bon No: `{selected_bon_id}`")
-            display_bon_df = selected_bon_rows[["Merk Rokok", "Ball", "Slop", "Bungkus", "Total Setara Bungkus"]].reset_index(drop=True)
-            st.dataframe(display_bon_df, use_container_width=True)
+            # --- MENAMPILKAN DETAIL SEMUA MERK BESERTA STOKNYA DARI BON ---
+            st.markdown(f"#### 📋 Rincian Detail Semua Merk & Stock Bon No: `{selected_bon_id}`")
+            for idx, r_bon in selected_bon_rows.iterrows():
+                with st.container():
+                    col_det1, col_det2, col_det3, col_det4, col_det5 = st.columns([3, 1, 1, 1, 2])
+                    with col_det1:
+                        st.markdown(f"**🚬 {r_bon['Merk Rokok']}**")
+                    with col_det2:
+                        st.text(f"Ball: {r_bon['Ball']}")
+                    with col_det3:
+                        st.text(f"Slop: {r_bon['Slop']}")
+                    with col_det4:
+                        st.text(f"Bungkus: {r_bon['Bungkus']}")
+                    with col_det5:
+                        st.markdown(f"Total: **{r_bon['Total Setara Bungkus']} Bks**")
+                st.divider()
 
     with st.form("form_transaksi", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
             team_name = st.text_input("Nama Team / Promotor / Direct Selling", value=default_team, placeholder="Contoh: SPG Zona Barat - Siska")
             
-            # Jika menggunakan bon, pilih dari daftar merk yang ada di bon tersebut (bukan dropdown tersembunyi, melainkan list pilihan merk bon)
+            # Pilihan merk rokok (jika bon dipilih, ambil dari merk bon tersebut, jika manual ambil dari master)
             if selected_bon_id != "- Manual Input -" and not selected_bon_rows.empty:
                 bon_merks_list = selected_bon_rows["Merk Rokok"].tolist()
-                merk_pilih = st.selectbox("Pilih Merk Rokok dari Daftar Bon di Atas", bon_merks_list)
+                merk_pilih = st.selectbox("Pilih Merk Rokok yang akan diinput transaksinya", bon_merks_list)
             else:
                 merk_pilih = st.selectbox("Merk Rokok", list_merk)
 
         with col2:
-            # Otomatis menghitung stok awal berdasarkan merk yang dipilih dari bon
             initial_stok_val = 0
             if selected_bon_id != "- Manual Input -" and not selected_bon_rows.empty:
                 matched_item = selected_bon_rows[selected_bon_rows["Merk Rokok"] == merk_pilih]
