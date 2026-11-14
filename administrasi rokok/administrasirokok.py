@@ -284,26 +284,22 @@ with tab1:
         active_merks = list_merk[:3]
 
     with st.form(f"form_transaksi_layout_{st.session_state.trx_form_reset_id}", clear_on_submit=True):
-        st.markdown("**Pilih Merk Rokok yang akan diinput transaksinya** | **Stock Awal (dalam satuan Bungkus)**")
-        stok_awal_inputs = {}
+        
+        st.markdown("**Pilih Merk Rokok & Stock Awal (Terkunci dari Data Bon)**")
+        stok_awal_values = {}
         for merk in active_merks:
-            default_val = 0
+            val_awal = 0
             if current_active_bon and not st.session_state.df_bon.empty:
                 matched = st.session_state.df_bon[(st.session_state.df_bon["ID"] == current_active_bon) & (st.session_state.df_bon["Merk Rokok"] == merk)]
                 if not matched.empty:
-                    default_val = int(matched.iloc[0]["Total Setara Bungkus"])
+                    val_awal = int(matched.iloc[0]["Total Setara Bungkus"])
             
+            stok_awal_values[merk] = val_awal
             c_m, c_v = st.columns([3, 2])
             with c_m:
-                st.text(merk)
+                st.markdown(f"🔹 **{merk}**")
             with c_v:
-                stok_awal_inputs[merk] = st.number_input(
-                    f"Awal_{merk}", 
-                    min_value=0, 
-                    value=default_val, 
-                    key=f"awal_{st.session_state.trx_form_reset_id}_{merk}",
-                    label_visibility="collapsed"
-                )
+                st.markdown(f"📦 **{val_awal:,} bks** (Terkunci)")
 
         st.markdown("---")
         st.markdown("**Rokok Belum Selesai / Gantung** | **Jumlah (dalam satuan bungkus)**")
@@ -382,7 +378,7 @@ with tab1:
             else:
                 saved_count = 0
                 for merk in active_merks:
-                    s_awal = stok_awal_inputs[merk]
+                    s_awal = stok_awal_values[merk]  # Mengambil nilai terkunci dari data bon
                     s_akhir = akhir_inputs[merk]
                     s_gantung = gantung_inputs[merk]
                     s_lain = lain_inputs[merk]
