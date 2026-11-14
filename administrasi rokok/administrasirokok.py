@@ -588,11 +588,13 @@ with tab_penjualan_team:
             st.dataframe(df_grouped_sales, use_container_width=True)
 
             # Fitur Download Excel
+
             output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df_grouped_sales.to_excel(writer, sheet_name='Penjualan_Team', index=False)
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df_grouped_lap.to_excel(writer, index=False, sheet_name='Laporan Penjualan')
             excel_data = output.getvalue()
 
+            
             st.download_button(
                 label="📥 Download Data Penjualan (Excel)",
                 data=excel_data,
