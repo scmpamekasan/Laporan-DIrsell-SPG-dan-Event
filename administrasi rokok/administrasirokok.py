@@ -399,8 +399,7 @@ with tab1:
                         "Stok Awal": s_awal,
                         "Stok Akhir": s_akhir,
                         "Belum Selesai": s_gantung,
-                        "Bon Qty": s_lain,                # Diisi dari Pengeluaran Rokok Lain-lain
-                        "Keperluan Bon": final_input_bon, # Diisi langsung dengan No Bon
+                        "Rokok Lain-lain": s_lain,                
                         "Terjual": terjual,
                         "Harga Kanvas": h_kanvas,
                         "Harga Konsumen": h_konsumen,
