@@ -31,7 +31,7 @@ selected_date = st.sidebar.date_input("Pilih Tanggal Laporan", datetime.now())
 current_week = get_current_week_label(selected_date)
 st.sidebar.info(f"📅 Periode: **{current_week}**")
 
-# --- MENU UTAMA (Termasuk Sub-Menu / Tab Penjualan Per Team) ---
+# --- MENU UTAMA ---
 tab_stock, tab1, tab2, tab_lap_team, tab3, tab4 = st.tabs([
     "📦 Stock Rokok", 
     "📝 Input Transaksi", 
@@ -121,7 +121,7 @@ with tab_stock:
                         s = item["slop"]
                         bu = item["bungkus"]
                         
-                        master_item = dict_master_detail.get(merk, {"slop": 10})
+                        master_item = dict_master_detail.get(merk, {"slop": 10, "bungkus": 100})
                         slop_per_ball = master_item.get("slop", 10)
                         bungkus_per_slop = 10
                         total_setara = (b * slop_per_ball * bungkus_per_slop) + (s * bungkus_per_slop) + bu
@@ -609,7 +609,6 @@ with tab_lap_team:
             st.info("Tidak ada data transaksi yang sesuai dengan filter yang dipilih.")
     else:
         st.info("Belum ada data transaksi tercatat untuk dibuatkan laporan.")
-        
 
 # ================= TAB 4: MANAJEMEN BON (REKAP KONVERSI BALL, SLOP, BUNGKUS) =================
 with tab3:
@@ -617,7 +616,6 @@ with tab3:
     st.markdown("Pilih beberapa keterangan sekaligus, lalu lihat ringkasan gabungan jumlah merk rokok lengkap dengan konversi otomatis Ball, Slop, & Bungkus.")
 
     if not st.session_state.df_bon.empty:
-        # Ambil daftar unik keterangan dan team
         list_keterangan = []
         if "Keterangan" in st.session_state.df_bon.columns:
             unique_ket = st.session_state.df_bon["Keterangan"].dropna().unique().tolist()
@@ -625,7 +623,6 @@ with tab3:
 
         list_team_bon = ["Semua Team"] + sorted(st.session_state.df_bon["Team/Promotor"].dropna().unique().tolist())
 
-        # Layout Filter
         col_fk1, col_fk2 = st.columns(2)
         with col_fk1:
             selected_ket_filter = st.multiselect(
@@ -637,7 +634,6 @@ with tab3:
         with col_fk2:
             selected_team_bon_filter = st.selectbox("👥 Filter Team / Promotor", options=list_team_bon, key="filter_team_bon_mgmt_multi")
 
-        # Terapkan Filter pada DataFrame Bon
         df_bon_filtered = st.session_state.df_bon.copy()
         
         if selected_ket_filter:
@@ -652,12 +648,10 @@ with tab3:
         st.markdown("#### 📊 Ringkasan Gabungan Merk Rokok & Konversi Satuan")
 
         if not df_bon_filtered.empty:
-            # 1. Group by Merk Rokok untuk menjumlahkan total bungkus mentahnya
             df_grouped_merk = df_bon_filtered.groupby("Merk Rokok").agg({
                 "Total Setara Bungkus": "sum"
             }).reset_index()
 
-            # 2. Hubungkan dengan Master Konversi dari file JSON (dict_master_detail)
             hasil_tabel_konversi = []
             for _, row in df_grouped_merk.iterrows():
                 merk_name = row["Merk Rokok"]
@@ -685,7 +679,6 @@ with tab3:
 
             df_final_display = pd.DataFrame(hasil_tabel_konversi)
 
-            # Tampilkan metrik ringkas
             total_merk_unik = len(df_final_display)
             
             mc1, mc2 = st.columns(2)
@@ -700,7 +693,6 @@ with tab3:
 
             st.divider()
 
-            # Tabel Detail Data Asli (Opsional)
             with st.expander("🔎 Lihat Detail Rincian Baris Bon Asli"):
                 edited_bon_table = st.data_editor(
                     df_bon_filtered,
@@ -715,7 +707,6 @@ with tab3:
 
             st.divider()
 
-            # Rekapitulasi Berdasarkan Keterangan
             st.markdown("#### 📑 Ringkasan Total Bon Berdasarkan Keterangan")
             if "Keterangan" in st.session_state.df_bon.columns:
                 df_rekap_ket = st.session_state.df_bon.groupby("Keterangan").agg({
@@ -730,7 +721,6 @@ with tab3:
 
         st.divider()
 
-        # Menu Hapus Bon
         st.markdown("### 🗑️ Hapus Data Bon")
         bon_ids = st.session_state.df_bon["ID"].unique().tolist()
         del_bon_id = st.selectbox("Pilih No Bon yang ingin dihapus total", options=["-"] + bon_ids, key="select_del_bon")
@@ -741,15 +731,6 @@ with tab3:
                 st.rerun()
     else:
         st.info("Belum ada data bon rokok tercatat.")
-
-### Penjelasan Alur Penghubungnya:
-# 1. **Pencocokan Nama Merk**: Script melakukan perulangan (`for`) pada hasil ringkasan bon (`df_grouped_merk`), lalu mencocokkan kolom `"Merk Rokok"` dengan data dictionary master (`dict_master_detail`) yang bersumber dari `master_harga_rokok.json`.
-# 2. **Pengambilan Aturan Konversi**: Dari file JSON tersebut, sistem secara otomatis membaca spesifikasi `slop` (misal 10 atau 20) dan `bungkus` (misal 100 atau 200) yang dimiliki masing-masing merk[cite: 2].
-# 3. **Kalkulasi Matematis Otomatis**: 
- #   * Jika total bungkus berjumlah **11** untuk merk berstandar 200 bks/ball dan 20 slop/ball, sistem otomatis menghitung: `0 Ball, 1 Slop, 1 Bungkus`.
-  #  * Jika total bungkus berjumlah **22 slop** (atau setara 220 bungkus), sistem otomatis menghitung: `1 Ball, 2 Slop, 0 Bungkus`.
-# 4. **Tampilan Bersih**: Data disajikan dalam kolom terpisah (`Konversi Ball`, `Konversi Slop`, `Konversi Bungkus`) serta diringkas dalam kolom teks `Format Otomatis` tanpa memunculkan baris yang duplikat[cite: 2].
-        
 
 # ================= TAB 5: RESET & HAPUS ALL (ADMIN ONLY) =================
 with tab4:
