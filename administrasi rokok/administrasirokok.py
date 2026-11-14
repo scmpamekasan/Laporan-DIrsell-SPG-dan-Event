@@ -748,7 +748,6 @@ with tab3:
                 st.rerun()
     else:
         st.info("Belum ada data bon rokok tercatat.")
-```[cite: 2]
 
 ### Penjelasan Alur Penghubungnya:
 # 1. **Pencocokan Nama Merk**: Script melakukan perulangan (`for`) pada hasil ringkasan bon (`df_grouped_merk`), lalu mencocokkan kolom `"Merk Rokok"` dengan data dictionary master (`dict_master_detail`) yang bersumber dari `master_harga_rokok.json`.
