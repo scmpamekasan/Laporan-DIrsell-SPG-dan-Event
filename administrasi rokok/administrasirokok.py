@@ -73,8 +73,8 @@ st.title("🚬 Sistem Administrasi Stok & Penjualan Rokok")
 st.markdown("Pencatatan stok awal, akhir, bon keperluan, rokok gantung/belum selesai, serta setoran harga kanvas vs konsumen.")
 
 # --- SIDEBAR: NAVIGASI & ROLE ---
-st.sidebar.image("https://img.icons8.com/color/96/wooden-crate.png", width=70)
-st.sidebar.header("Panel Navigasi")
+st.sidebar.image("SCMlogo.jpg", width=70)
+st.sidebar.header("Menu")
 role = st.sidebar.selectbox("User Login", ["Promotor", "PIC Dirsell & Event", "Admin"])
 
 st.sidebar.divider()
