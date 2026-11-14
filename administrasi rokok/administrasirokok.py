@@ -682,11 +682,9 @@ with tab3:
 
                 hasil_tabel_konversi.append({
                     "Merk Rokok": merk_name,
-                    "Total Bungkus (Bks)": total_bks,
                     "Konversi Ball": int(ball),
                     "Konversi Slop": int(slop),
                     "Konversi Bungkus": int(bungkus),
-                    "Format Otomatis": f"{int(ball)} Ball {int(slop)} Slop {int(bungkus)} Bks"
                 })
 
             df_final_display = pd.DataFrame(hasil_tabel_konversi)
