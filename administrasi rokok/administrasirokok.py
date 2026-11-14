@@ -23,7 +23,7 @@ st.markdown("Pencatatan stok awal, akhir, bon keperluan, rokok gantung/belum sel
 # --- SIDEBAR: NAVIGASI & ROLE ---
 st.sidebar.image("https://img.icons8.com/color/96/wooden-crate.png", width=70)
 st.sidebar.header("Panel Navigasi")
-role = st.sidebar.selectbox("Pilih Hak Akses (Role)", ["Admin", "Supervisi", "SPG / Promotor"])
+role = st.sidebar.selectbox("Pilih Hak Akses (Role)", ["Admin", "PIC DSO", "Promotor"])
 
 st.sidebar.divider()
 selected_date = st.sidebar.date_input("Pilih Tanggal Laporan", datetime.now())
