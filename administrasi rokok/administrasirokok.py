@@ -202,7 +202,7 @@ with tab_stock:
 # ================= TAB 1: INPUT TRANSAKSI =================
 with tab1:
     st.subheader("📝 Form Pencatatan Harian Transaksi & Stok")
-    st.markdown("Pilih Nomor Bon untuk menampilkan otomatis seluruh merk rokok sesuai layout[cite: 3].")
+    st.markdown("Pilih Nomor Bon untuk menampilkan otomatis seluruh merk rokok sesuai layout.")
 
     if "trx_form_reset_id" not in st.session_state:
         st.session_state.trx_form_reset_id = 0
@@ -210,7 +210,7 @@ with tab1:
     if "last_trx_msg" in st.session_state and st.session_state["last_trx_msg"]:
         st.success(st.session_state.pop("last_trx_msg"))
 
-    # Filter nomor bon: Hapus bon yang sudah pernah di-entry ke df_transaksi
+    # Filter nomor bon: Saring bon yang sudah pernah di-entry ke df_transaksi agar tidak muncul lagi
     all_bons = []
     if not st.session_state.df_bon.empty:
         all_bons = st.session_state.df_bon["ID"].unique().tolist()
@@ -236,7 +236,6 @@ with tab1:
         if not selected_bon_rows.empty:
             default_team = selected_bon_rows.iloc[0]["Team/Promotor"]
 
-    # Jika memilih dari dropdown, field No Bon & Nama otomatis terisi dan terkunci/read-only atau langsung mengikat
     val_no_bon = selected_bon_id if selected_bon_id != "- Manual Input -" else ""
     val_nama = default_team if selected_bon_id != "- Manual Input -" else ""
 
@@ -363,7 +362,11 @@ with tab1:
         submitted_all = st.form_submit_button("💾 Simpan Seluruh Transaksi Harian Ini", type="primary")
 
         if submitted_all:
-            if not input_no_bon:
+            # Validasi No Bon dari widget luar form menggunakan st.session_state
+            current_input_bon = st.session_state.get(f"no_bon_in_{st.session_state.trx_form_reset_id}", val_no_bon)
+            current_input_nama = st.session_state.get(f"nama_in_{st.session_state.trx_form_reset_id}", val_nama)
+
+            if not current_input_bon:
                 st.error("No Bon wajib diisi!")
             else:
                 saved_count = 0
@@ -381,16 +384,16 @@ with tab1:
 
                     new_row = {
                         "ID": str(uuid.uuid4())[:8],
-                        "No Bon": input_no_bon,
+                        "No Bon": current_input_bon,
                         "Tanggal": str(selected_date),
                         "Minggu": current_week,
-                        "Team/Promotor": input_nama if input_nama else "Tanpa Nama",
+                        "Team/Promotor": current_input_nama if current_input_nama else "Tanpa Nama",
                         "Merk Rokok": merk,
                         "Stok Awal": s_awal,
                         "Stok Akhir": s_akhir,
                         "Belum Selesai": s_gantung,
                         "Bon Qty": s_lain,
-                        "Keperluan Bon": f"Bon [{input_no_bon}]",
+                        "Keperluan Bon": f"Bon [{current_input_bon}]",
                         "Terjual": terjual,
                         "Harga Kanvas": h_kanvas,
                         "Harga Konsumen": h_konsumen,
@@ -401,7 +404,7 @@ with tab1:
                     saved_count += 1
 
                 st.session_state.trx_form_reset_id += 1
-                st.session_state["last_trx_msg"] = f"✅ Berhasil menyimpan {saved_count} data transaksi untuk No Bon **{input_no_bon}**!"
+                st.session_state["last_trx_msg"] = f"✅ Berhasil menyimpan {saved_count} data transaksi untuk No Bon **{current_input_bon}**!"
                 st.rerun()
 
 # ================= TAB 2: TABEL REKAP & EDIT =================
@@ -525,7 +528,7 @@ with tab3:
         if st.button("Hapus Bon Terpilih"):
             if del_bon_id != "-":
                 st.session_state.df_bon = st.session_state.df_bon[st.session_state.df_bon["ID"] != del_bon_id]
-                st.success(f"Bon No. {del_bon_id} berhasil dihapus!")
+                st.success(f"No Bon {del_bon_id} berhasil dihapus!")
                 st.rerun()
     else:
         st.info("Belum ada data bon rokok tercatat.")
