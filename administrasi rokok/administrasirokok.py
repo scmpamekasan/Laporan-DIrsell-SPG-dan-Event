@@ -611,73 +611,90 @@ with tab_lap_team:
         st.info("Belum ada data transaksi tercatat untuk dibuatkan laporan.")
         
 
-# ================= TAB 4: MANAJEMEN BON (DENGAN FILTER ID BON, KETERANGAN, & TEAM) =================
+# ================= TAB 4: MANAJEMEN BON (MULTIPLE FILTER KETERANGAN & GROUPING MERK) =================
 with tab3:
     st.subheader("📋 Manajemen & Rekap Data Bon Rokok")
-    st.markdown("Kelola data bon serta filter rekapitulasi berdasarkan ID Bon, Keterangan, atau Team/Promotor.")
+    st.markdown("Pilih beberapa keterangan sekaligus, lalu lihat ringkasan gabungan jumlah merk rokok secara otomatis.")
 
     if not st.session_state.df_bon.empty:
-        # Ambil daftar unik untuk filter: ID Bon, Keterangan, dan Team
-        list_id_bon = ["Semua ID Bon"] + sorted(st.session_state.df_bon["ID"].dropna().unique().tolist())
-        
-        list_keterangan = ["Semua Keterangan"]
+        # Ambil daftar unik keterangan dan team
+        list_keterangan = []
         if "Keterangan" in st.session_state.df_bon.columns:
             unique_ket = st.session_state.df_bon["Keterangan"].dropna().unique().tolist()
-            list_keterangan.extend([str(k) for k in unique_ket if str(k).strip() != ""])
+            list_keterangan = [str(k) for k in unique_ket if str(k).strip() != ""]
 
         list_team_bon = ["Semua Team"] + sorted(st.session_state.df_bon["Team/Promotor"].dropna().unique().tolist())
 
-        # Layout Filter (3 Kolom)
-        col_fk1, col_fk2, col_fk3 = st.columns(3)
+        # Layout Filter (Multiselect untuk Keterangan)
+        col_fk1, col_fk2 = st.columns(2)
         with col_fk1:
-            selected_id_bon_filter = st.selectbox("🔍 Filter ID Bon", options=list_id_bon, key="filter_id_bon_mgmt")
+            # Menggunakan multiselect agar bisa memilih lebih dari satu keterangan
+            selected_ket_filter = st.multiselect(
+                "🔍 Filter Keterangan (Bisa Pilih Banyak)", 
+                options=list_keterangan, 
+                default=list_keterangan, # Default terpilih semua
+                key="filter_keterangan_multi"
+            )
         with col_fk2:
-            selected_ket_filter = st.selectbox("📌 Filter Keterangan", options=list_keterangan, key="filter_keterangan_bon")
-        with col_fk3:
-            selected_team_bon_filter = st.selectbox("👥 Filter Team / Promotor", options=list_team_bon, key="filter_team_bon_mgmt")
+            selected_team_bon_filter = st.selectbox("👥 Filter Team / Promotor", options=list_team_bon, key="filter_team_bon_mgmt_multi")
 
         # Terapkan Filter pada DataFrame Bon
         df_bon_filtered = st.session_state.df_bon.copy()
-        if selected_id_bon_filter != "Semua ID Bon":
-            df_bon_filtered = df_bon_filtered[df_bon_filtered["ID"] == selected_id_bon_filter]
-        if selected_ket_filter != "Semua Keterangan":
-            df_bon_filtered = df_bon_filtered[df_bon_filtered["Keterangan"] == selected_ket_filter]
+        
+        if selected_ket_filter:
+            df_bon_filtered = df_bon_filtered[df_bon_filtered["Keterangan"].isin(selected_ket_filter)]
+        else:
+            df_bon_filtered = df_bon_filtered.iloc[0:0] # Kosongkan jika tidak ada yang dipilih
+
         if selected_team_bon_filter != "Semua Team":
             df_bon_filtered = df_bon_filtered[df_bon_filtered["Team/Promotor"] == selected_team_bon_filter]
 
         st.markdown("---")
-        st.markdown(f"#### 📊 Tabel Data Bon Terfilter")
+        st.markdown("#### 📊 Ringkasan Gabungan Merk Rokok (Berdasarkan Keterangan Terpilih)")
 
         if not df_bon_filtered.empty:
-            # Tampilkan metrik ringkas total bungkus setara dari filter ini
-            total_bungkus_bon = df_bon_filtered["Total Setara Bungkus"].sum()
-            total_bon_item = len(df_bon_filtered)
+            # 1. Tabel Gabungan/Group By berdasarkan Merk Rokok untuk menjumlahkan Ball, Slop, Bungkus, & Total Setara
+            df_grouped_merk = df_bon_filtered.groupby("Merk Rokok").agg({
+                "Ball": "sum",
+                "Slop": "sum",
+                "Bungkus": "sum",
+                "Total Setara Bungkus": "sum"
+            }).reset_index()
+
+            # Tampilkan metrik total secara keseluruhan dari hasil filter
+            total_bungkus_gabungan = df_grouped_merk["Total Setara Bungkus"].sum()
+            total_merk_unik = len(df_grouped_merk)
             
             mc1, mc2 = st.columns(2)
             with mc1:
-                st.metric("Total Baris / Item Bon", f"{total_bon_item} Item")
+                st.metric("Total Jenis Merk Rokok", f"{total_merk_unik} Merk")
             with mc2:
-                st.metric("Total Setara Bungkus", f"{total_bungkus_bon:,.0f} Bks")
+                st.metric("Total Keseluruhan (Setara Bungkus)", f"{total_bungkus_gabungan:,.0f} Bks")
 
             st.markdown("")
-
-            # Tabel Data Editor untuk Edit Langsung
-            edited_bon_table = st.data_editor(
-                df_bon_filtered,
-                num_rows="dynamic",
-                use_container_width=True,
-                key="editable_bon_table_filtered"
-            )
-            
-            # Jika ada perubahan pada data editor, sinkronkan kembali ke df_bon utama
-            if not edited_bon_table.equals(df_bon_filtered):
-                for idx, row in edited_bon_table.iterrows():
-                    st.session_state.df_bon.loc[st.session_state.df_bon["ID"] == row["ID"]] = row
-                st.rerun()
+            st.markdown("##### 📌 Tabel Rekap Gabungan Merk")
+            st.dataframe(df_grouped_merk, use_container_width=True)
 
             st.divider()
 
-            # Rekapitulasi Total Setara Bungkus Berdasarkan Keterangan secara Keseluruhan
+            # 2. Tabel Detail Data Asli (Opsional jika ingin melihat baris per baris detail bon)
+            with st.expander("🔎 Lihat Detail Rincian Baris Bon Asli"):
+                edited_bon_table = st.data_editor(
+                    df_bon_filtered,
+                    num_rows="dynamic",
+                    use_container_width=True,
+                    key="editable_bon_table_multi_filtered"
+                )
+                
+                # Sinkronisasi jika ada perubahan pada data editor detail
+                if not edited_bon_table.equals(df_bon_filtered):
+                    for idx, row in edited_bon_table.iterrows():
+                        st.session_state.df_bon.loc[st.session_state.df_bon["ID"] == row["ID"]] = row
+                    st.rerun()
+
+            st.divider()
+
+            # Rekapitulasi Total Setara Bungkus Berdasarkan Masing-masing Keterangan
             st.markdown("#### 📑 Ringkasan Total Bon Berdasarkan Keterangan")
             if "Keterangan" in st.session_state.df_bon.columns:
                 df_rekap_ket = st.session_state.df_bon.groupby("Keterangan").agg({
@@ -688,7 +705,7 @@ with tab3:
                 st.dataframe(df_rekap_ket, use_container_width=True)
 
         else:
-            st.warning("Tidak ada data bon yang sesuai dengan kombinasi filter tersebut.")
+            st.warning("Tidak ada data bon yang sesuai dengan filter pilihan Anda.")
 
         st.divider()
 
