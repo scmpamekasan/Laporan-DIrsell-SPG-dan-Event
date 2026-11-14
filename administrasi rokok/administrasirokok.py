@@ -39,7 +39,7 @@ tab_stock, tab1, tab2, tab3, tab4 = st.tabs([
     "⚙️ Reset & Hapus Data"
 ])
 
-# ================= TAB 0: STOCK ROKOK (BON MULTI-MERK) =================
+# ================= TAB 0: STOCK ROKOK (BON MULTI-MERK DENGAN KETERANGAN) =================
 with tab_stock:
     st.subheader("📦 Manajemen Stock Rokok & Bon Multi-Merk")
     st.markdown("Input 1 nomor bon untuk sekaligus banyak merk rokok, pantau sisa stock kemarin, serta kalkulasi stock awal hari ini.")
@@ -50,11 +50,16 @@ with tab_stock:
     with st.expander("➕ Input Bon Rokok Baru (Multi-Merk)", expanded=True):
         with st.form(f"form_bon_multimerk_{st.session_state.bon_form_reset_id}", clear_on_submit=True):
             st.markdown("#### Informasi Umum Bon")
-            c1, c2, c3 = st.columns(3)
+            
+            # Baris pertama informasi umum bon
+            c1, c2 = st.columns(2)
             with c1:
                 nomor_bon = st.text_input("No Bon", placeholder="Contoh: bon111")
             with c2:
                 team_bon = st.text_input("Nama (Promotor / Team)", placeholder="Contoh: Beni")
+
+            # Baris kedua informasi umum bon (Keperluan & Keterangan Opsional)
+            c3, c4 = st.columns(2)
             with c3:
                 keperluan_bon = st.selectbox("Keperluan Bon Utama", [
                     "Dirsell SPG", 
@@ -64,6 +69,8 @@ with tab_stock:
                     "Penambahan Stock Gudang", 
                     "Lainnya"
                 ])
+            with c4:
+                keterangan_bon_umum = st.text_input("Keterangan (Opsional)", placeholder="Contoh: Untuk event shamrock")
 
             st.markdown("---")
             st.markdown("#### Daftar Merk Rokok dalam Bon Ini")
@@ -120,6 +127,7 @@ with tab_stock:
                         total_setara = (b * slop_per_ball * bungkus_per_slop) + (s * bungkus_per_slop) + bu
                         
                         if total_setara > 0:
+                            ket_final = keterangan_bon_umum if keterangan_bon_umum else f"Bon No: {nomor_bon}"
                             new_row = {
                                 "ID": nomor_bon,
                                 "Tanggal": str(selected_date),
@@ -130,7 +138,7 @@ with tab_stock:
                                 "Bungkus": bu,
                                 "Total Setara Bungkus": total_setara,
                                 "Keperluan": keperluan_bon,
-                                "Keterangan": f"Bon No: {nomor_bon}"
+                                "Keterangan": ket_final
                             }
                             st.session_state.df_bon = pd.concat([st.session_state.df_bon, pd.DataFrame([new_row])], ignore_index=True)
                             sukses_count += 1
@@ -386,7 +394,7 @@ with tab1:
                 st.session_state["last_trx_msg"] = f"✅ Berhasil menyimpan {saved_count} data transaksi untuk No Bon **{input_no_bon}**!"
                 st.rerun()
 
-# ================= TAB 2: TABEL REKAP & EDIT (DENGAN FILTER TEAM/PROMOTOR) =================
+# ================= TAB 2: TABEL REKAP & EDIT (DENGAN FILTER TEAM) =================
 with tab2:
     st.subheader("📊 Tabel Rekapitulasi & Edit Data Transaksi")
     
@@ -407,12 +415,10 @@ with tab2:
 
         st.divider()
 
-        # --- FILTER TEAM / PROMOTOR ---
         st.markdown("### 🔍 Filter Berdasarkan Team / Promotor")
         list_teams = ["Semua Team"] + st.session_state.df_transaksi["Team/Promotor"].unique().tolist()
         selected_filter_team = st.selectbox("Pilih Team / Promotor untuk Filter Ringkasan", options=list_teams)
 
-        # Filter dataframe sesuai pilihan
         if selected_filter_team == "Semua Team":
             df_filtered = st.session_state.df_transaksi
         else:
@@ -420,7 +426,6 @@ with tab2:
 
         st.markdown("---")
 
-        # --- GRAND TOTAL & RINGKASAN KEUANGAN (BERDASARKAN FILTER) ---
         st.markdown(f"### 💰 Grand Total & Ringkasan Keuangan ({selected_filter_team})")
         
         grand_total_konsumen = df_filtered["Total Setoran Konsumen"].sum()
@@ -437,7 +442,6 @@ with tab2:
 
         st.markdown("---")
 
-        # --- TOTAL SISA STOCK AKHIR PER MERK (BERDASARKAN FILTER) ---
         st.markdown(f"### 📦 Total Sisa Stock Akhir (Sisa Fisik) per Merk Rokok ({selected_filter_team})")
         if not df_filtered.empty:
             df_sisa_merk = df_filtered.groupby("Merk Rokok")["Stok Akhir"].sum().reset_index()
@@ -448,7 +452,6 @@ with tab2:
 
         st.markdown("---")
 
-        # --- REKAPITULASI PER BON ---
         st.markdown("### 📋 Rekapitulasi Berdasarkan Nomor Bon")
         if "No Bon" in st.session_state.df_transaksi.columns:
             df_rekap_bon = st.session_state.df_transaksi.groupby("No Bon").agg({
@@ -462,7 +465,6 @@ with tab2:
 
         st.markdown("---")
 
-        # --- REKAPITULASI PER TEAM / PROMOTOR ---
         st.markdown("### 👥 Rekapitulasi Berdasarkan Team / Promotor")
         df_rekap_team = st.session_state.df_transaksi.groupby("Team/Promotor").agg({
             "Terjual": "sum",
@@ -473,7 +475,6 @@ with tab2:
 
         st.divider()
 
-        # Menu Hapus Data Spesifik
         st.markdown("### 🗑️ Menu Hapus Data")
         col_del1, col_del2 = st.columns(2)
         with col_del1:
