@@ -852,10 +852,24 @@ with tab2:
         if "No Bon" not in st.session_state.df_transaksi.columns:
             st.session_state.df_transaksi["No Bon"] = st.session_state.df_transaksi["ID"]
 
+        # ----------------------------------------------------
+        # FILTER BY TANGGAL PENYELESAIAN BON (TANGGAL TRANSAKSI)
+        # ----------------------------------------------------
+        st.markdown("### 📅 Filter Data")
+        list_tgl_transaksi = ["Semua Tanggal"] + sorted(st.session_state.df_transaksi["Tanggal"].dropna().unique().tolist(), reverse=True)
+        selected_filter_tgl_trx = st.selectbox("Filter Berdasarkan Tanggal Penyelesaian Bon (Tanggal Transaksi)", options=list_tgl_transaksi, key="filter_tgl_transaksi_tab2")
+
+        df_view_trx = st.session_state.df_transaksi.copy()
+        if selected_filter_tgl_trx != "Semua Tanggal":
+            df_view_trx = df_view_trx[df_view_trx["Tanggal"] == selected_filter_tgl_trx]
+
         st.markdown("### ✏️ Edit Data Transaksi Langsung")
-        edited_df = st.data_editor(st.session_state.df_transaksi, num_rows="dynamic", use_container_width=True, key="editable_transaction_table")
-        if not edited_df.equals(st.session_state.df_transaksi):
-            st.session_state.df_transaksi = edited_df
+        edited_df = st.data_editor(df_view_trx, num_rows="dynamic", use_container_width=True, key="editable_transaction_table")
+        if not edited_df.equals(df_view_trx):
+            # Update kembali ke dataframe utama berdasarkan ID unik
+            for idx, row in edited_df.iterrows():
+                row_id = row["ID"]
+                st.session_state.df_transaksi.loc[st.session_state.df_transaksi["ID"] == row_id] = row
             st.rerun()
 
         st.divider()
@@ -888,15 +902,18 @@ with tab2:
 
         st.markdown("---")
         st.markdown(f"### 📦 Kondisi Sisa Stock Akhir Terakhir per Merk Rokok ({selected_filter_team})")
-        if not df_filtered.empty:
-            df_sorted_all = df_filtered.sort_values(by="Tanggal", ascending=False)
-            df_latest_stock = df_sorted_all.drop_duplicates(subset=["Team/Promotor", "Merk Rokok"], keep="first")
-            col_sa_tab2 = "Stock Akhir" if "Stock Akhir" in df_latest_stock.columns else "Stok Akhir"
-            df_sisa_merk = df_latest_stock.groupby("Merk Rokok")[col_sa_tab2].sum().reset_index()
+        
+        # Menggunakan get_active_remaining_stocks() agar otomatis terhapus/berkurang jika sudah diselesaikan ke gudang
+        df_active_tab2 = get_active_remaining_stocks()
+        if selected_filter_team != "Semua Team":
+            df_active_tab2 = df_active_tab2[df_active_tab2["Team/Promotor"] == selected_filter_team]
+
+        if not df_active_tab2.empty:
+            df_sisa_merk = df_active_tab2.groupby("Merk Rokok")["Sisa Stock Akhir"].sum().reset_index()
             df_sisa_merk.columns = ["Merk Rokok", "Sisa Stock Akhir Terakhir (Bungkus)"]
             st.dataframe(df_sisa_merk, use_container_width=True)
         else:
-            st.info("Tidak ada data untuk team ini.")
+            st.info("Tidak ada sisa stock aktif (semua stock sudah habis atau diselesaikan ke gudang).")
 
         st.markdown("---")
         st.markdown("### 📋 Rekapitulasi Berdasarkan Nomor Bon")
@@ -1218,7 +1235,7 @@ with tab3:
     else:
         st.info("Belum ada data bon resmi tercatat.")
 
-# ================= TAB 6: PENYELESAIAN ROKOK KE GUDANG (OTOMATIS DARI DATA TRANSAKSI) =================
+# ================= TAB 6: PENYELESAIAN ROKOK KE GUDANG =================
 with tab_gudang:
     st.subheader("📥 Menu Penyelesaian Rokok ke Gudang")
     st.markdown("Data sisa rokok diambil secara otomatis dari **Tabel Rekapitulasi & Edit Data Transaksi**. Pilih Team/Promotor untuk menyelesaikan sisa rokok hari ini agar tidak muncul pada sisa stock hari berikutnya.")
@@ -1244,7 +1261,6 @@ with tab_gudang:
                 key="ket_penyelesaian_gudang"
             )
 
-        # Filter sisa stock berdasarkan Team/Promotor yang dipilih
         df_target_gudang = df_sisa_aktif_gudang[
             df_sisa_aktif_gudang["Team/Promotor"] == selected_team_gudang
         ].copy().reset_index(drop=True)
@@ -1253,7 +1269,6 @@ with tab_gudang:
         st.markdown(f"#### 📦 Daftar Sisa Stock Rokok Aktif Milik **{selected_team_gudang}**")
         st.caption("Centang item yang ingin diselesaikan ke gudang, dan sesuaikan kolom **Jumlah Bungkus Diselesaikan** (default terisi otomatis seluruh sisa stock).")
 
-        # Tambahkan kolom interaktif untuk dipilih / diedit jumlah bungkus yang dikembalikan
         df_target_gudang.insert(0, "Selesaikan", True)
         df_target_gudang["Jumlah Bungkus Diselesaikan"] = df_target_gudang["Sisa Stock Akhir"]
 
