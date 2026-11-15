@@ -76,9 +76,11 @@ if "master_rokok_data" not in st.session_state:
 
 if "df_pre_entry_bon" not in st.session_state:
     st.session_state.df_pre_entry_bon = pd.DataFrame(columns=[
-        "ID Draft", "Tanggal", "Team/Promotor", "Merk Rokok", 
+        "ID Draft", "Tanggal", "Rencana Penyelesaian", "Team/Promotor", "Merk Rokok", 
         "Ball", "Slop", "Bungkus", "Total Setara Bungkus", "Keperluan", "Keterangan"
     ])
+elif "Rencana Penyelesaian" not in st.session_state.df_pre_entry_bon.columns:
+    st.session_state.df_pre_entry_bon["Rencana Penyelesaian"] = str(datetime.now().date())
 
 master_rokok = st.session_state.master_rokok_data
 list_merk = [item["merk"] for item in master_rokok]
@@ -180,7 +182,7 @@ tab_pre_entry, tab_stock, tab1, tab2, tab_lap_team, tab3, tab4 = st.tabs([
 # ================= TAB 0: PRE ENTRY DRAF BON =================
 with tab_pre_entry:
     st.subheader("📥 Pre Entry Draf Bon Rokok")
-    st.markdown("Buat draf permintaan bon terlebih dahulu sebelum mendapatkan No Bon resmi dari Admin. Setelah mendapat No Bon asli, submit draf ini agar masuk ke sistem.")
+    st.markdown("Buat draf permintaan bon terlebih dahulu sebelum mendapatkan No Bon resmi dari Admin. Sertakan tanggal rencana penyelesaian bon.")
 
     if "pre_form_reset_id" not in st.session_state:
         st.session_state.pre_form_reset_id = 0
@@ -189,10 +191,12 @@ with tab_pre_entry:
         with st.form(f"form_pre_entry_{st.session_state.pre_form_reset_id}", clear_on_submit=True):
             st.markdown("#### Informasi Draf Bon")
             
-            c1, c2 = st.columns(2)
+            c1, c2, c3 = st.columns(3)
             with c1:
                 team_pre = st.text_input("Nama Pengebon / Promotor", placeholder="Contoh: Beni")
             with c2:
+                rencana_penyelesaian_date = st.date_input("Tanggal Rencana Penyelesaian", datetime.now())
+            with c3:
                 keperluan_pre = st.selectbox("Keperluan Bon", [
                     "Dirsell SPG", "Event", "Pembinaan Kantor", "Sampling / Promosi", "Lainnya"
                 ], key="pre_kep")
@@ -256,6 +260,7 @@ with tab_pre_entry:
                             new_draft_row = {
                                 "ID Draft": draft_group_id,
                                 "Tanggal": str(selected_date),
+                                "Rencana Penyelesaian": str(rencana_penyelesaian_date),
                                 "Team/Promotor": team_pre,
                                 "Merk Rokok": merk,
                                 "Ball": b,
@@ -272,7 +277,7 @@ with tab_pre_entry:
 
                     st.session_state.jumlah_baris_pre = 5
                     st.session_state.pre_form_reset_id += 1
-                    st.success(f"✅ Berhasil menyimpan Draf dengan ID Group **{draft_group_id}**!")
+                    st.success(f"✅ Berhasil menyimpan Draf dengan ID Group **{draft_group_id}** (Rencana Penyelesaian: {rencana_penyelesaian_date})!")
                     st.rerun()
 
     st.divider()
@@ -314,7 +319,7 @@ with tab_pre_entry:
                         "Bungkus": r["Bungkus"],
                         "Total Setara Bungkus": r["Total Setara Bungkus"],
                         "Keperluan": r["Keperluan"],
-                        "Keterangan": f"Resmi Admin ({input_no_bon_asli.strip()}) - {r['Keterangan']}"
+                        "Keterangan": f"Resmi Admin ({input_no_bon_asli.strip()}) | Rencana: {r['Rencana Penyelesaian']} - {r['Keterangan']}"
                     }
                     st.session_state.df_bon = pd.concat([
                         st.session_state.df_bon, pd.DataFrame([official_bon_row])
@@ -859,43 +864,56 @@ with tab3:
     st.subheader("📋 Management & Rekap Data Bon Rokok")
     
     # ----------------------------------------------------
-    # BAGIAN 1: LAPORAN DRAF PRE ENTRY BON (BELUM DISUBMIT)
+    # BAGIAN 1: LAPORAN DRAF PRE ENTRY BON (DENGAN FILTER RENCANA PENYELESAIAN)
     # ----------------------------------------------------
     st.markdown("### 📥 Rekapitulasi Draf Pre Entry Bon (Belum Disubmit)")
-    st.markdown("Berikut adalah rekapitulasi gabungan merk dan konversi satuan untuk draf bon yang masih menunggu nomor resmi dari admin.")
+    st.markdown("Filter dan ringkasan konversi satuan draf bon berdasarkan tanggal rencana penyelesaian.")
 
     if not st.session_state.df_pre_entry_bon.empty:
-        df_pre_grouped_merk = st.session_state.df_pre_entry_bon.groupby("Merk Rokok").agg({
-            "Total Setara Bungkus": "sum"
-        }).reset_index()
+        # Filter berdasarkan Rencana Penyelesaian
+        list_rencana_tgl = ["Semua Tanggal"] + sorted(st.session_state.df_pre_entry_bon["Rencana Penyelesaian"].dropna().unique().tolist())
+        selected_filter_rencana = st.selectbox("📅 Filter Berdasarkan Tanggal Rencana Penyelesaian Bon", options=list_rencana_tgl, key="filter_rencana_penyelesaian_bon")
 
-        pre_konversi_list = []
-        for _, row in df_pre_grouped_merk.iterrows():
-            m_name = row["Merk Rokok"]
-            tot_bks = row["Total Setara Bungkus"]
-            
-            master_info = dict_master_detail.get(m_name, {"slop": 20, "bungkus": 200})
-            slop_per_ball = master_info.get("slop", 20)
-            bungkus_per_ball = master_info.get("bungkus", 200)
-            bungkus_per_slop = 10
-            
-            ball = tot_bks // bungkus_per_ball
-            sisa_bks = tot_bks % bungkus_per_ball
-            slop = sisa_bks // bungkus_per_slop
-            bungkus = sisa_bks % bungkus_per_slop
+        df_pre_filtered = st.session_state.df_pre_entry_bon.copy()
+        if selected_filter_rencana != "Semua Tanggal":
+            df_pre_filtered = df_pre_filtered[df_pre_filtered["Rencana Penyelesaian"] == selected_filter_rencana]
 
-            pre_konversi_list.append({
-                "Merk Rokok": m_name,
-                "Ball": int(ball),
-                "Slop": int(slop),
-                "Bungkus": int(bungkus),
-                "Total Bungkus": int(tot_bks)
-            })
+        if not df_pre_filtered.empty:
+            df_pre_grouped_merk = df_pre_filtered.groupby("Merk Rokok").agg({
+                "Total Setara Bungkus": "sum"
+            }).reset_index()
 
-        df_pre_display = pd.DataFrame(pre_konversi_list)
-        st.dataframe(df_pre_display, use_container_width=True)
+            pre_konversi_list = []
+            for _, row in df_pre_grouped_merk.iterrows():
+                m_name = row["Merk Rokok"]
+                tot_bks = row["Total Setara Bungkus"]
+                
+                master_info = dict_master_detail.get(m_name, {"slop": 20, "bungkus": 200})
+                slop_per_ball = master_info.get("slop", 20)
+                bungkus_per_ball = master_info.get("bungkus", 200)
+                bungkus_per_slop = 10
+                
+                ball = tot_bks // bungkus_per_ball
+                sisa_bks = tot_bks % bungkus_per_ball
+                slop = sisa_bks // bungkus_per_slop
+                bungkus = sisa_bks % bungkus_per_slop
+
+                pre_konversi_list.append({
+                    "Merk Rokok": m_name,
+                    "Ball": int(ball),
+                    "Slop": int(slop),
+                    "Bungkus": int(bungkus)
+                })
+
+            df_pre_display = pd.DataFrame(pre_konversi_list)
+            st.dataframe(df_pre_display, use_container_width=True)
+
+            with st.expander("🔎 Lihat Detail Rincian Baris Draf Pre Entry"):
+                st.dataframe(df_pre_filtered, use_container_width=True)
+        else:
+            st.warning("Tidak ada draf bon untuk tanggal rencana penyelesaian tersebut.")
     else:
-        st.info("Tidak ada Draf Pre Entry Bon yang aktif saat ini.")
+        st.info("Belum ada Draf Pre Entry Bon yang aktif saat ini.")
 
     st.divider()
 
