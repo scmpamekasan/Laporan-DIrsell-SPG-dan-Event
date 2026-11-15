@@ -14,7 +14,7 @@ from data_store import load_master_harga, init_session_state
 # ==========================================
 # GANTI DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA
 # ==========================================
-WEB_APP_URL = "MASUKKAN_URL_WEB_APP_ANDA_DISINI"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyPaC9j64wZ39IHYNjD1YtlVbinCUuFk2K0flq7UhDb_thYUjKHkyuUaf0LWVjz44c/exec"
 
 
 def backup_to_google_sheets():
