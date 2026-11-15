@@ -261,8 +261,7 @@ except Exception:
     col1, col2, col3 = st.sidebar.columns([1, 2, 1])
     with col2:
         st.image("https://img.icons8.com/color/96/wooden-crate.png", width=120)
-        
-st.markdown(
+        st.markdown(
     """
     <div style="text-align:center; margin-top:8px; color:#8a8f98;
                 font-size:11px; letter-spacing:0.4px;">
