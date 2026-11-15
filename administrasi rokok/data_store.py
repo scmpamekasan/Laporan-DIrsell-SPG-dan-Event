@@ -1,11 +1,15 @@
 import streamlit as st
 import pandas as pd
+import json
+import os
 
 def load_master_harga():
     """
-    Mengembalikan data master harga dan satuan default untuk berbagai merk rokok.
+    Memuat data master harga dan satuan dari file 'master_harga_rokok.json'.
+    Jika file belum ada, akan menggunakan data default dan membuat file JSON tersebut secara otomatis.
     """
-    return [
+    file_path = "master_harga_rokok.json"
+    default_data = [
         {"merk": "Black Matcha K12", "harga_kanvas": 15000, "harga_konsumen": 18000, "ball": 1, "slop": 20, "bungkus": 200},
         {"merk": "D.Super 12", "harga_kanvas": 21000, "harga_konsumen": 25000, "ball": 1, "slop": 20, "bungkus": 200},
         {"merk": "D.76 Apel Royal", "harga_kanvas": 12000, "harga_konsumen": 15000, "ball": 1, "slop": 20, "bungkus": 200},
@@ -14,6 +18,36 @@ def load_master_harga():
         {"merk": "Djarum Black Siro", "harga_kanvas": 22000, "harga_konsumen": 26000, "ball": 1, "slop": 20, "bungkus": 200},
         {"merk": "Djarum Black Kuro", "harga_kanvas": 22000, "harga_konsumen": 26000, "ball": 1, "slop": 20, "bungkus": 200}
     ]
+    
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, list) and len(data) > 0:
+                    return data
+        except Exception:
+            pass
+            
+    # Jika file belum ada atau kosong, buat file default-nya
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(default_data, f, indent=4)
+    except Exception:
+        pass
+        
+    return default_data
+
+def save_master_harga(master_data):
+    """
+    Menyimpan perubahan master harga ke file 'master_harga_rokok.json'.
+    """
+    file_path = "master_harga_rokok.json"
+    try:
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(master_data, f, indent=4)
+        return True
+    except Exception:
+        return False
 
 def init_session_state():
     """
@@ -42,7 +76,3 @@ def init_session_state():
         st.session_state.df_penyelesaian_gudang = pd.DataFrame(columns=[
             "ID Penyelesaian", "Tanggal", "Team/Promotor", "Merk Rokok", "Jumlah Bungkus", "Keterangan"
         ])
-
-### Catatan Tambahan:
-#* Pastikan file utama untuk menjalankan aplikasi Streamlit Anda adalah **`administrasirokok.py`**, bukan `data_store.py`. 
-#* Di dalam file `administrasirokok.py`, Anda baru memanggil `from data_store import load_master_harga, init_session_state`.
