@@ -371,7 +371,6 @@ with tab_pre_entry:
     pre_nama_key = f"pre_team_input_{st.session_state.pre_form_reset_id}"
     pre_ket_key = f"pre_ket_input_{st.session_state.pre_form_reset_id}"
 
-    # Kumpulkan riwayat data unik yang pernah di-entry sebelumnya untuk Predicted Text (<datalist>)
     list_history_nama = []
     if not st.session_state.df_pre_entry_bon.empty and "Team/Promotor" in st.session_state.df_pre_entry_bon.columns:
         list_history_nama = st.session_state.df_pre_entry_bon["Team/Promotor"].dropna().unique().tolist()
@@ -396,7 +395,6 @@ with tab_pre_entry:
 
             keterangan_pre_umum = st.text_input("Keterangan Draft (Opsional)", placeholder="Contoh: Permintaan stok untuk Event Weekend", key=pre_ket_key)
 
-            # --- INJEKSI PREDICTED TEXT (<datalist>) KE STREAMLIT UI ---
             options_nama_html = "".join([f'<option value="{name}">' for name in list_history_nama])
             options_ket_html = "".join([f'<option value="{ket}">' for ket in list_history_ket])
             
@@ -404,7 +402,6 @@ with tab_pre_entry:
             <script>
                 const doc = window.parent.document;
                 
-                // Cari input field Nama Pengebon / Promotor
                 const inputsNama = doc.querySelectorAll('input[aria-label="Nama Pengebon / Promotor"]');
                 inputsNama.forEach((input, index) => {{
                     input.setAttribute('list', 'history-nama-list');
@@ -417,7 +414,6 @@ with tab_pre_entry:
                     datalist.innerHTML = `{options_nama_html}`;
                 }});
 
-                // Cari input field Keterangan Draft
                 const inputsKet = doc.querySelectorAll('input[aria-label="Keterangan Draft (Opsional)"]');
                 inputsKet.forEach((input, index) => {{
                     input.setAttribute('list', 'history-ket-list');
@@ -1055,14 +1051,20 @@ with tab3:
             df_pre_filtered = df_pre_filtered[df_pre_filtered["Rencana Penyelesaian"] == selected_filter_rencana]
 
         if not df_pre_filtered.empty:
+            # Group by Merk Rokok & gabungkan Keterangan unik di sebelah kanan
+            def join_unique_keterangan(series):
+                return ", ".join([str(x) for x in series.dropna().unique() if str(x).strip() != ""])
+
             df_pre_grouped_merk = df_pre_filtered.groupby("Merk Rokok").agg({
-                "Total Setara Bungkus": "sum"
+                "Total Setara Bungkus": "sum",
+                "Keterangan": join_unique_keterangan
             }).reset_index()
 
             pre_konversi_list = []
             for _, row in df_pre_grouped_merk.iterrows():
                 m_name = row["Merk Rokok"]
                 tot_bks = int(row["Total Setara Bungkus"])
+                ket_val = row["Keterangan"]
                 
                 master_info = dict_master_detail.get(m_name, {"slop": 20, "bungkus": 200})
                 slop_per_ball = master_info.get("slop", 20)
@@ -1078,7 +1080,8 @@ with tab3:
                     "Merk Rokok": m_name,
                     "Ball": int(ball),
                     "Slop": int(slop),
-                    "Bungkus": int(bungkus)
+                    "Bungkus": int(bungkus),
+                    "Keterangan": ket_val
                 })
 
             df_pre_display = pd.DataFrame(pre_konversi_list)
@@ -1415,7 +1418,7 @@ with tab4:
         st.markdown("Tarik data dari Google Sheet secara manual jika diperlukan.")
         if st.button("🔄 Tarik Data dari Google Sheet", type="secondary"):
             with st.spinner("Sedang memuat data..."):
-                success, mdg = load_from_google_sheets()
+                success, msg = load_from_google_sheets()
                 if success:
                     st.success("✅ " + msg)
                     st.rerun()
