@@ -17,7 +17,7 @@ TRANSAKSI_COLUMNS = [
     "Harga Kanvas",
     "Harga Konsumen",
     "Total Setoran Kanvas",
-    "Total Setoran Konsumen",
+    "Total Setoran",
 ]
 
 BON_COLUMNS = [
