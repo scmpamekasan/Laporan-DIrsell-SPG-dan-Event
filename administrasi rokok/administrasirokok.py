@@ -8,6 +8,11 @@ import gspread
 from google.oauth2.service_account import Credentials
 import json
 
+from app_config import setup_page_config, apply_custom_styling
+from date_utils import get_current_week_label, format_date_indo
+from data_store import load_master_harga, init_session_state
+
+
 def backup_to_google_sheets():
     try:
         if "gcp_service_account" not in st.secrets:
@@ -56,20 +61,19 @@ def backup_to_google_sheets():
         st.error(f"Gagal melakukan backup: {e}")
         return False, None
 
-from app_config import setup_page_config, apply_custom_styling
-from date_utils import get_current_week_label, format_date_indo
-from data_store import load_master_harga, init_session_state
 
 # Konfigurasi Awal
 setup_page_config()
 apply_custom_styling()
 init_session_state()
 
-# Inisialisasi Master Rokok ke session_state agar bisa diedit dinamis
+if "trx_form_reset_id" not in st.session_state:
+    st.session_state.trx_form_reset_id = 0
+
+# Inisialisasi Master Rokok ke session_state sebagai satu-satunya sumber referensi harga
 if "master_rokok_data" not in st.session_state:
     st.session_state.master_rokok_data = load_master_harga()
 
-# Sinkronisasi list dan dictionary master dari session_state
 master_rokok = st.session_state.master_rokok_data
 list_merk = [item["merk"] for item in master_rokok]
 dict_master_detail = {item["merk"]: item for item in master_rokok}
@@ -77,7 +81,6 @@ dict_master_detail = {item["merk"]: item for item in master_rokok}
 # Header Utama
 st.title("🚬 Sistem Administrasi Stock & Penjualan Rokok")
 st.markdown("Pencatatan Stock Rokok - Bon Rokok - Rokok Gantung/Belum Selesai - Setoran Hasil Penjualan")
-
 
 # --- SIDEBAR: NAVIGASI & ROLE ---
 try:
@@ -94,12 +97,12 @@ except Exception:
 st.sidebar.header("Menu")
 role = st.sidebar.selectbox("User Login", ["Promotor", "PIC Dirsell & Event", "Admin"])
 
-# --- MENU MASTER ROKOK DI SIDEBAR (KHUSUS ADMIN / UMUM) ---
+# --- MENU MASTER ROKOK DI SIDEBAR ---
 with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
     st.markdown("### Update Harga & Merk")
     
     # 1. Tambah Merk Baru
-    with st.form("form_tambah_merk_baru"):
+    with st.form("form_tambah_merk_baru", clear_on_submit=True):
         st.markdown("**Tambah Merk Baru**")
         new_merk_name = st.text_input("Nama Merk Baru")
         new_harga_kanvas = st.number_input("Harga Kanvas", min_value=0, value=10000, step=100)
@@ -110,31 +113,43 @@ with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
         
         btn_add_merk = st.form_submit_button("➕ Tambah Merk")
         if btn_add_merk:
-            if not new_merk_name.strip():
+            clean_name = new_merk_name.strip()
+            if not clean_name:
                 st.error("Nama merk tidak boleh kosong!")
-            elif new_merk_name in list_merk:
+            elif clean_name in list_merk:
                 st.error("Merk tersebut sudah ada!")
             else:
                 st.session_state.master_rokok_data.append({
-                    "merk": new_merk_name.strip(),
+                    "merk": clean_name,
                     "harga_kanvas": int(new_harga_kanvas),
                     "harga_konsumen": int(new_harga_konsumen),
                     "ball": int(new_ball),
                     "slop": int(new_slop),
                     "bungkus": int(new_bungkus)
                 })
-                st.success(f"Berhasil menambah merk {new_merk_name}!")
+                st.session_state.trx_form_reset_id += 1
+                st.success(f"Berhasil menambah merk {clean_name}!")
                 st.rerun()
 
     st.markdown("---")
     st.markdown("**Edit Harga Cepat**")
-    selected_edit_merk = st.selectbox("Pilih Merk untuk Diedit", options=list_merk)
+    selected_edit_merk = st.selectbox("Pilih Merk untuk Diedit", options=list_merk, key="sidebar_edit_merk_select")
     
     if selected_edit_merk:
         current_detail = dict_master_detail[selected_edit_merk]
         with st.form(f"form_edit_harga_{selected_edit_merk}"):
-            up_kanvas = st.number_input("Harga Kanvas Baru", min_value=0, value=int(current_detail.get("harga_kanvas", 0)), step=100)
-            up_konsumen = st.number_input("Harga Konsumen Baru", min_value=0, value=int(current_detail.get("harga_konsumen", 0)), step=100)
+            up_kanvas = st.number_input(
+                "Harga Kanvas Baru", 
+                min_value=0, 
+                value=int(current_detail.get("harga_kanvas", 0)), 
+                step=100
+            )
+            up_konsumen = st.number_input(
+                "Harga Konsumen Baru", 
+                min_value=0, 
+                value=int(current_detail.get("harga_konsumen", 0)), 
+                step=100
+            )
             
             btn_save_harga = st.form_submit_button("💾 Simpan Perubahan Harga")
             if btn_save_harga:
@@ -143,6 +158,12 @@ with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
                         item["harga_kanvas"] = int(up_kanvas)
                         item["harga_konsumen"] = int(up_konsumen)
                         break
+                
+                # Update langsung nilai widget harga di form Input Transaksi agar sinkron seketika
+                harga_widget_key = f"harga_{st.session_state.trx_form_reset_id}_{selected_edit_merk}"
+                if harga_widget_key in st.session_state:
+                    st.session_state[harga_widget_key] = int(up_konsumen)
+                
                 st.success(f"Harga {selected_edit_merk} berhasil diperbarui!")
                 st.rerun()
 
@@ -286,13 +307,14 @@ with tab_stock:
     combined_data = []
     if not df_terakhir.empty:
         for _, row in df_terakhir.iterrows():
-            if row["Stock Akhir"] > 0:
+            col_stock_akhir = "Stock Akhir" if "Stock Akhir" in row else "Stok Akhir"
+            if row[col_stock_akhir] > 0:
                 combined_data.append({
                     "Team/Promotor": row["Team/Promotor"],
                     "Merk Rokok": row["Merk Rokok"],
-                    "Stock Terakhir": row["Stock Akhir"],
+                    "Stock Terakhir": row[col_stock_akhir],
                     "Bon Hari Ini (Bungkus)": 0,
-                    "Total Stock Awal": row["Stock Akhir"]
+                    "Total Stock Awal": row[col_stock_akhir]
                 })
 
     if not df_bon_hari_ini.empty:
@@ -329,9 +351,6 @@ with tab_stock:
 with tab1:
     st.subheader("📝 Form Pencatatan Harian Transaksi & Stock")
     st.markdown("Pilih Nomor Bon Untuk Menampilkan Otomatis Seluruh Merk Rokok Sesuai Layout.")
-
-    if "trx_form_reset_id" not in st.session_state:
-        st.session_state.trx_form_reset_id = 0
 
     if "last_trx_msg" in st.session_state and st.session_state["last_trx_msg"]:
         st.success(st.session_state.pop("last_trx_msg"))
@@ -409,7 +428,12 @@ with tab1:
             active_merks = selected_bon_rows["Merk Rokok"].tolist()
     
     if not active_merks:
-        active_merks = list_merk[:3]
+        active_merks = st.multiselect(
+            "🚬 Pilih Daftar Merk Rokok (Mode Manual Input)",
+            options=list_merk,
+            default=list_merk[:3],
+            key=f"manual_merks_{st.session_state.trx_form_reset_id}"
+        )
 
     with st.form(f"form_transaksi_layout_{st.session_state.trx_form_reset_id}", clear_on_submit=True):
         
@@ -425,7 +449,8 @@ with tab1:
                     (df_sorted_trx["Merk Rokok"] == merk)
                 ]
                 if not match_terakhir.empty:
-                    stok_terakhir = int(match_terakhir.iloc[0]["Stock Akhir"])
+                    col_sa = "Stock Akhir" if "Stock Akhir" in match_terakhir.columns else "Stok Akhir"
+                    stok_terakhir = int(match_terakhir.iloc[0][col_sa])
 
             bon_hari_ini = 0
             if current_active_bon and not st.session_state.df_bon.empty:
@@ -481,15 +506,18 @@ with tab1:
         st.markdown("**Merk Rokok** | **Harga Jual Konsumen (dalam Rupiah)**")
         harga_inputs = {}
         for merk in active_merks:
-            def_harga = dict_master_detail.get(merk, {}).get("harga_konsumen", 0)
+            master_item_info = dict_master_detail.get(merk, {})
+            def_harga = int(master_item_info.get("harga_konsumen", 0))
+            h_kanvas_info = int(master_item_info.get("harga_kanvas", 0))
+            
             c_m, c_v = st.columns([3, 2])
             with c_m:
-                st.text(merk)
+                st.markdown(f"{merk} *(Kanvas: Rp {h_kanvas_info:,})*")
             with c_v:
                 harga_inputs[merk] = st.number_input(
                     f"Harga_{merk}", 
                     min_value=0, 
-                    value=int(def_harga), 
+                    value=def_harga, 
                     key=f"harga_{st.session_state.trx_form_reset_id}_{merk}",
                     label_visibility="collapsed"
                 )
@@ -519,6 +547,8 @@ with tab1:
 
             if not final_input_bon:
                 st.error("No Bon wajib diisi!")
+            elif not active_merks:
+                st.error("Pilih minimal 1 merk rokok!")
             else:
                 saved_count = 0
                 for merk in active_merks:
@@ -528,7 +558,7 @@ with tab1:
                     s_lain = lain_inputs[merk]  
                     h_konsumen = harga_inputs[merk]
                     
-                    h_kanvas = dict_master_detail.get(merk, {}).get("harga_kanvas", 10000)
+                    h_kanvas = int(dict_master_detail.get(merk, {}).get("harga_kanvas", 10000))
                     terjual = max(0, (s_awal - s_akhir) - s_gantung - s_lain)
                     tot_kanvas = terjual * h_kanvas
                     tot_konsumen = terjual * h_konsumen
@@ -617,7 +647,8 @@ with tab2:
         if not df_filtered.empty:
             df_sorted_all = df_filtered.sort_values(by="Tanggal", ascending=False)
             df_latest_stock = df_sorted_all.drop_duplicates(subset=["Team/Promotor", "Merk Rokok"], keep="first")
-            df_sisa_merk = df_latest_stock.groupby("Merk Rokok")["Stock Akhir"].sum().reset_index()
+            col_sa_tab2 = "Stock Akhir" if "Stock Akhir" in df_latest_stock.columns else "Stok Akhir"
+            df_sisa_merk = df_latest_stock.groupby("Merk Rokok")[col_sa_tab2].sum().reset_index()
             df_sisa_merk.columns = ["Merk Rokok", "Sisa Stock Akhir Terakhir (Bungkus)"]
             st.dataframe(df_sisa_merk, use_container_width=True)
         else:
@@ -780,7 +811,6 @@ with tab3:
                 
                 slop_per_ball = master_info.get("slop", 20)
                 bungkus_per_ball = master_info.get("bungkus", 200)
-                
                 bungkus_per_slop = 10
                 
                 ball = total_bks // bungkus_per_ball
