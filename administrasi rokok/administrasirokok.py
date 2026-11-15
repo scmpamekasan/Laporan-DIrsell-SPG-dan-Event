@@ -381,13 +381,17 @@ with tab_pre_entry:
     if "pre_form_reset_id" not in st.session_state:
         st.session_state.pre_form_reset_id = 0
 
+    pre_nama_key = f"pre_team_input_{st.session_state.pre_form_reset_id}"
+    if pre_nama_key not in st.session_state:
+        st.session_state[pre_nama_key] = ""
+
     with st.expander("➕ Buat Draft Bon Baru (Multi-Merk)", expanded=True):
         with st.form(f"form_pre_entry_{st.session_state.pre_form_reset_id}", clear_on_submit=True):
             st.markdown("#### Informasi Draft Bon")
             
             c1, c2, c3 = st.columns(3)
             with c1:
-                team_pre = st.text_input("Nama Pengebon / Promotor", placeholder="Contoh: Beni")
+                team_pre = st.text_input("Nama Pengebon / Promotor", placeholder="Contoh: Beni", key=pre_nama_key)
             with c2:
                 rencana_penyelesaian_date = st.date_input("Tanggal Rencana Penyelesaian", datetime.now())
             with c3:
@@ -472,6 +476,20 @@ with tab_pre_entry:
                     st.session_state.jumlah_baris_pre = 5
                     st.session_state.pre_form_reset_id += 1
                     st.success(f"✅ Berhasil menyimpan Draft dengan ID Group **{Draftt_group_id}** (Rencana Penyelesaian: {rencana_penyelesaian_date})!")
+                    st.rerun()
+
+    # --- RECENT NAMES CHIPS KHUSUS MENU PRE-ENTRY ---
+    recent_pre_names = []
+    if not st.session_state.df_pre_entry_bon.empty and "Team/Promotor" in st.session_state.df_pre_entry_bon.columns:
+        recent_pre_names = st.session_state.df_pre_entry_bon["Team/Promotor"].dropna().unique().tolist()[-5:]
+
+    if recent_pre_names:
+        st.markdown("🕒 **Riwayat Nama Pengebon Terakhir (Klik untuk mengisi cepat):**")
+        cols_chip_pre = st.columns(min(len(recent_pre_names), 5))
+        for idx, p_name in enumerate(recent_pre_names):
+            with cols_chip_pre[idx]:
+                if st.button(f"👤 {p_name}", key=f"chip_pre_name_{idx}", use_container_width=True):
+                    st.session_state[pre_nama_key] = p_name
                     st.rerun()
 
     st.divider()
@@ -644,22 +662,8 @@ with tab1:
         st.markdown("**No Bon**")
         input_no_bon = st.text_input("No Bon Input", key=text_bon_key, label_visibility="collapsed")
     with col_h2:
-        st.markdown("**Nama Promotor / Team**")
+        st.markdown("**Nama**")
         input_nama = st.text_input("Nama Input", placeholder="Nama Promotor / Team", key=text_nama_key, label_visibility="collapsed")
-
-    # --- RECENT DATA / PREDICTED QUICK CHIPS FOR NAMES ---
-    recent_names = []
-    if not st.session_state.df_transaksi.empty and "Team/Promotor" in st.session_state.df_transaksi.columns:
-        recent_names = st.session_state.df_transaksi["Team/Promotor"].dropna().unique().tolist()[-5:]
-
-    if recent_names:
-        st.caption("🕒 **Riwayat Nama Terakhir (Klik untuk mengisi cepat):**")
-        cols_chip = st.columns(min(len(recent_names), 5))
-        for idx, name_item in enumerate(recent_names):
-            with cols_chip[idx]:
-                if st.button(f"👤 {name_item}", key=f"chip_name_{idx}", use_container_width=True):
-                    st.session_state[text_nama_key] = name_item
-                    st.rerun()
 
     st.markdown("---")
 
