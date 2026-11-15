@@ -38,11 +38,17 @@ def backup_to_google_sheets():
         if not st.session_state.df_pre_entry_bon.empty:
             pre_data = [st.session_state.df_pre_entry_bon.columns.tolist()] + st.session_state.df_pre_entry_bon.astype(str).values.tolist()
 
+        # Siapkan data penyelesaian gudang
+        gudang_data = []
+        if "df_penyelesaian_gudang" in st.session_state and not st.session_state.df_penyelesaian_gudang.empty:
+            gudang_data = [st.session_state.df_penyelesaian_gudang.columns.tolist()] + st.session_state.df_penyelesaian_gudang.astype(str).values.tolist()
+
         payload = {
             "action": "backup",
             "transaksi": trx_data,
             "bon": bon_data,
-            "pre_entry": pre_data
+            "pre_entry": pre_data,
+            "penyelesaian_gudang": gudang_data
         }
 
         response = requests.post(WEB_APP_URL, json=payload)
@@ -117,6 +123,18 @@ def load_from_google_sheets():
                     "Ball", "Slop", "Bungkus", "Total Setara Bungkus", "Keperluan", "Keterangan"
                 ])
 
+            # 4. Load Penyelesaian Gudang
+            gudang_vals = db_data.get("penyelesaian_gudang", [])
+            if len(gudang_vals) > 1:
+                df_gudang_loaded = pd.DataFrame(gudang_vals[1:], columns=gudang_vals[0])
+                if "Jumlah Bungkus" in df_gudang_loaded.columns:
+                    df_gudang_loaded["Jumlah Bungkus"] = pd.to_numeric(df_gudang_loaded["Jumlah Bungkus"], errors='coerce').fillna(0)
+                st.session_state.df_penyelesaian_gudang = df_gudang_loaded
+            else:
+                st.session_state.df_penyelesaian_gudang = pd.DataFrame(columns=[
+                    "ID Penyelesaian", "Tanggal", "Team/Promotor", "Merk Rokok", "Jumlah Bungkus", "Keterangan"
+                ])
+
             return True, "Data berhasil ditarik dan dipulihkan dari Google Sheet!"
         else:
             return False, result.get("message", "Gagal memuat data.")
@@ -143,6 +161,12 @@ if "df_pre_entry_bon" not in st.session_state:
     ])
 elif "Rencana Penyelesaian" not in st.session_state.df_pre_entry_bon.columns:
     st.session_state.df_pre_entry_bon["Rencana Penyelesaian"] = str(datetime.now().date())
+
+# Inisialisasi Penyelesaian Gudang ke session_state
+if "df_penyelesaian_gudang" not in st.session_state:
+    st.session_state.df_penyelesaian_gudang = pd.DataFrame(columns=[
+        "ID Penyelesaian", "Tanggal", "Team/Promotor", "Merk Rokok", "Jumlah Bungkus", "Keterangan"
+    ])
 
 # ==========================================
 # OTOMATIS LOAD DATA SAAT PERTAMA KALI DIBUKA
@@ -244,13 +268,14 @@ current_week = get_current_week_label(selected_date)
 st.sidebar.info(f"📅 Periode: **{current_week}**")
 
 # --- MENU UTAMA ---
-tab_pre_entry, tab_stock, tab1, tab2, tab_lap_team, tab3, tab4 = st.tabs([
+tab_pre_entry, tab_stock, tab1, tab2, tab_lap_team, tab3, tab_gudang, tab4 = st.tabs([
     "📥 Pre Entry Draf Bon",
     "📦 Stock Rokok", 
     "📝 Input Transaksi", 
     "📊 Tabel Rekap & Edit", 
     "👥 Laporan Per Team",
     "📋 Management Bon", 
+    "📥 Penyelesaian ke Gudang",
     "⚙️ Backup & Reset Data"
 ])
 
@@ -523,6 +548,7 @@ with tab_stock:
 
     st.markdown("### 📉 Sisa Stock Terakhir & Stock Awal Hari Ini")
     
+    # Hitung sisa stock terakhir dari transaksi dikurangi yang sudah diselesaikan ke gudang
     df_terakhir = pd.DataFrame()
     if not st.session_state.df_transaksi.empty:
         df_sorted_trx = st.session_state.df_transaksi.sort_values(by="Tanggal", ascending=False)
@@ -532,17 +558,33 @@ with tab_stock:
     if not st.session_state.df_bon.empty:
         df_bon_hari_ini = st.session_state.df_bon[st.session_state.df_bon["Tanggal"] == str(selected_date)]
 
+    # Ambil data penyelesaian gudang untuk mengurangi sisa stock
+    df_gudang_all = st.session_state.get("df_penyelesaian_gudang", pd.DataFrame())
+
     combined_data = []
     if not df_terakhir.empty:
         for _, row in df_terakhir.iterrows():
+            team = row["Team/Promotor"]
+            merk = row["Merk Rokok"]
             col_stock_akhir = "Stock Akhir" if "Stock Akhir" in row else "Stok Akhir"
-            if float(row[col_stock_akhir]) > 0:
+            sisa_stock = int(float(row[col_stock_akhir]))
+
+            # Kurangi jika sudah diselesaikan ke gudang pada riwayat sebelumnya
+            if not df_gudang_all.empty:
+                gudang_filter = df_gudang_all[
+                    (df_gudang_all["Team/Promotor"].str.lower() == team.lower()) & 
+                    (df_gudang_all["Merk Rokok"] == merk)
+                ]
+                total_selesai_gudang = int(gudang_filter["Jumlah Bungkus"].sum()) if not gudang_filter.empty else 0
+                sisa_stock = max(0, sisa_stock - total_selesai_gudang)
+
+            if sisa_stock > 0:
                 combined_data.append({
-                    "Team/Promotor": row["Team/Promotor"],
-                    "Merk Rokok": row["Merk Rokok"],
-                    "Stock Terakhir": int(row[col_stock_akhir]),
+                    "Team/Promotor": team,
+                    "Merk Rokok": merk,
+                    "Stock Terakhir": sisa_stock,
                     "Bon Hari Ini (Bungkus)": 0,
-                    "Total Stock Awal": int(row[col_stock_akhir])
+                    "Total Stock Awal": sisa_stock
                 })
 
     if not df_bon_hari_ini.empty:
@@ -658,6 +700,8 @@ with tab1:
         st.markdown("**Pilih Merk Rokok & Stock Awal (Stock Kemarin + Bon Hari Ini)**")
         stock_awal_values = {}
         
+        df_gudang_all = st.session_state.get("df_penyelesaian_gudang", pd.DataFrame())
+
         for merk in active_merks:
             stok_terakhir = 0
             if current_active_nama and not st.session_state.df_transaksi.empty:
@@ -669,6 +713,15 @@ with tab1:
                 if not match_terakhir.empty:
                     col_sa = "Stock Akhir" if "Stock Akhir" in match_terakhir.columns else "Stok Akhir"
                     stok_terakhir = int(float(match_terakhir.iloc[0][col_sa]))
+
+                    # Kurangi jika ada penyelesaian ke gudang
+                    if not df_gudang_all.empty:
+                        gudang_filter = df_gudang_all[
+                            (df_gudang_all["Team/Promotor"].str.lower() == current_active_nama.lower()) & 
+                            (df_gudang_all["Merk Rokok"] == merk)
+                        ]
+                        total_selesai_gudang = int(gudang_filter["Jumlah Bungkus"].sum()) if not gudang_filter.empty else 0
+                        stok_terakhir = max(0, stok_terakhir - total_selesai_gudang)
 
             bon_hari_ini = 0
             if current_active_bon and not st.session_state.df_bon.empty:
@@ -1049,7 +1102,6 @@ with tab3:
     st.markdown("Pilih filter keterangan dan status bon (Selesai/Belum Selesai), lalu lihat ringkasan gabungan merk rokok.")
 
     if not st.session_state.df_bon.empty:
-        # Menentukan status setiap nomor bon berdasarkan keberadaannya di df_transaksi
         used_bon_list = []
         if not st.session_state.df_transaksi.empty and "No Bon" in st.session_state.df_transaksi.columns:
             used_bon_list = st.session_state.df_transaksi["No Bon"].astype(str).unique().tolist()
@@ -1141,9 +1193,8 @@ with tab3:
                     st.rerun()
 
             st.divider()
-            st.markdown("#### 📑 Ringkasan Total Bon Berdasarkan Keterangan (Jumlah Mengacu pada Unique Count Nomor Bon)")
+            st.markdown("#### 📑 Ringkasan Total Bon Berdasarkan Keterangan")
             if "Keterangan" in df_bon_status.columns:
-                # Menggunakan nunique() pada kolom 'ID' agar menghitung jumlah nomor bon resmi, bukan jumlah baris/merk rokok
                 df_rekap_ket = df_bon_filtered.groupby("Keterangan").agg(
                     Jumlah_Bon=("ID", "nunique"),
                     Total_Setara_Bungkus=("Total Setara Bungkus", "sum")
@@ -1166,7 +1217,112 @@ with tab3:
     else:
         st.info("Belum ada data bon resmi tercatat.")
 
-# ================= TAB 6: BACKUP, RESTORE & RESET (DAPAT DIAKSES SEMUA ROLE) =================
+# ================= TAB 6: PENYELESAIAN ROKOK KE GUDANG =================
+with tab_gudang:
+    st.subheader("📥 Menu Penyelesaian Rokok ke Gudang")
+    st.markdown("Catat sisa rokok dari bon yang diselesaikan hari ini. Jika disubmit, sisa rokok tersebut akan dianggap habis dan tidak akan muncul lagi di sisa stock hari berikutnya.")
+
+    if "gudang_form_reset_id" not in st.session_state:
+        st.session_state.gudang_form_reset_id = 0
+
+    with st.form(f"form_penyelesaian_gudang_{st.session_state.gudang_form_reset_id}", clear_on_submit=True):
+        st.markdown("#### Form Input Pengembalian / Penyelesaian Sisa Rokok")
+        
+        c_g1, c_g2 = st.columns(2)
+        with c_g1:
+            nama_promotor_gudang = st.text_input("Nama Team / Promotor", placeholder="Contoh: Beni")
+        with c_g2:
+            tanggal_penyelesaian = st.date_input("Tanggal Penyelesaian", selected_date)
+
+        keterangan_gudang = st.text_input("Keterangan Penyelesaian", placeholder="Contoh: Pelunasan sisa stok bon lama dikembalikan ke gudang")
+
+        st.markdown("---")
+        st.markdown("#### Pilih Merk Rokok & Masukkan Jumlah Bungkus yang Diselesaikan")
+
+        if "jumlah_baris_gudang" not in st.session_state:
+            st.session_state.jumlah_baris_gudang = 5
+
+        item_gudang_list = []
+        for i in range(st.session_state.jumlah_baris_gudang):
+            col_gm, col_gb = st.columns([3, 2])
+            with col_gm:
+                m_gudang = st.selectbox(f"Merk Rokok #{i+1}", ["-"] + list_merk, key=f"gudang_m_{st.session_state.gudang_form_reset_id}_{i}")
+            with col_gb:
+                b_gudang = st.number_input(f"Jumlah Bungkus #{i+1}", min_value=0, value=0, key=f"gudang_b_{st.session_state.gudang_form_reset_id}_{i}")
+
+            if m_gudang != "-" and b_gudang > 0:
+                item_gudang_list.append({
+                    "merk": m_gudang,
+                    "bungkus": b_gudang
+                })
+
+        col_gbtn1, col_gbtn2 = st.columns([1, 4])
+        with col_gbtn1:
+            tambah_baris_gudang_btn = st.form_submit_button("➕ Tambah 3 Baris")
+        with col_gbtn2:
+            simpan_gudang_btn = st.form_submit_button("💾 Submit Penyelesaian ke Gudang", type="primary")
+
+        if tambah_baris_gudang_btn:
+            st.session_state.jumlah_baris_gudang += 3
+            st.rerun()
+
+        if simpan_gudang_btn:
+            if not nama_promotor_gudang.strip():
+                st.error("Nama Team / Promotor wajib diisi!")
+            elif not item_gudang_list:
+                st.error("Pilih minimal 1 merk rokok dan masukkan jumlah bungkusnya!")
+            else:
+                id_penyelesaian = f"GDG-{str(uuid.uuid4())[:6].upper()}"
+                sukses_gudang = 0
+                for item in item_gudang_list:
+                    new_gudang_row = {
+                        "ID Penyelesaian": id_penyelesaian,
+                        "Tanggal": str(tanggal_penyelesaian),
+                        "Team/Promotor": nama_promotor_gudang.strip(),
+                        "Merk Rokok": item["merk"],
+                        "Jumlah Bungkus": int(item["bungkus"]),
+                        "Keterangan": keterangan_gudang if keterangan_gudang else "Penyelesaian Sisa Rokok ke Gudang"
+                    }
+                    st.session_state.df_penyelesaian_gudang = pd.concat([
+                        st.session_state.df_penyelesaian_gudang, pd.DataFrame([new_gudang_row])
+                    ], ignore_index=True)
+                    sukses_gudang += 1
+
+                st.session_state.jumlah_baris_gudang = 5
+                st.session_state.gudang_form_reset_id += 1
+                st.success(f"✅ Berhasil mencatat {sukses_gudang} item penyelesaian ke gudang dengan ID **{id_penyelesaian}**!")
+                st.rerun()
+
+    st.divider()
+    st.markdown("### 📋 Riwayat Data Penyelesaian Rokok ke Gudang")
+
+    if not st.session_state.df_penyelesaian_gudang.empty:
+        edited_gudang_table = st.data_editor(
+            st.session_state.df_penyelesaian_gudang, 
+            num_rows="dynamic", 
+            use_container_width=True, 
+            key="editable_gudang_table"
+        )
+        if not edited_gudang_table.equals(st.session_state.df_penyelesaian_gudang):
+            st.session_state.df_penyelesaian_gudang = edited_gudang_table
+            st.rerun()
+
+        st.markdown("")
+        col_del_gdg1, col_del_gdg2 = st.columns(2)
+        with col_del_gdg1:
+            gudang_ids = st.session_state.df_penyelesaian_gudang["ID Penyelesaian"].unique().tolist()
+            selected_gdg_to_del = st.selectbox("Pilih ID Penyelesaian yang ingin dihapus", options=["-"] + gudang_ids)
+            if st.button("Hapus ID Penyelesaian Terpilih"):
+                if selected_gdg_to_del != "-":
+                    st.session_state.df_penyelesaian_gudang = st.session_state.df_penyelesaian_gudang[
+                        st.session_state.df_penyelesaian_gudang["ID Penyelesaian"] != selected_gdg_to_del
+                    ]
+                    st.success(f"Data penyelesaian {selected_gdg_to_del} berhasil dihapus.")
+                    st.rerun()
+    else:
+        st.info("Belum ada riwayat penyelesaian rokok ke gudang.")
+
+# ================= TAB 7: BACKUP, RESTORE & RESET (DAPAT DIAKSES SEMUA ROLE) =================
 with tab4:
     st.subheader("⚙️ Menu Backup, Load & Reset Data")
     st.markdown(f"Status Login Saat Ini: **{role}** (Menu Backup & Load Google Sheet terbuka untuk semua role).")
@@ -1207,6 +1363,7 @@ with tab4:
                 st.session_state.df_transaksi = pd.DataFrame(columns=st.session_state.df_transaksi.columns)
                 st.session_state.df_bon = pd.DataFrame(columns=st.session_state.df_bon.columns)
                 st.session_state.df_pre_entry_bon = pd.DataFrame(columns=st.session_state.df_pre_entry_bon.columns)
+                st.session_state.df_penyelesaian_gudang = pd.DataFrame(columns=st.session_state.df_penyelesaian_gudang.columns)
                 st.success("Semua data berhasil dibersihkan!")
                 st.rerun()
             else:
