@@ -70,8 +70,8 @@ list_merk = [item["merk"] for item in master_rokok]
 dict_master_detail = {item["merk"]: item for item in master_rokok}
 
 # Header Utama
-st.title("🚬 Sistem Administrasi Stok & Penjualan Rokok")
-st.markdown("Pencatatan Stok Rokok - Bon Rokok - Rokok Gantung/Belum Selesai - Setoran Hasil Penjualan")
+st.title("🚬 Sistem Administrasi Stock & Penjualan Rokok")
+st.markdown("Pencatatan Stock Rokok - Bon Rokok - Rokok Gantung/Belum Selesai - Setoran Hasil Penjualan")
 
 
 # --- SIDEBAR: NAVIGASI & ROLE ---
@@ -231,13 +231,13 @@ with tab_stock:
     combined_data = []
     if not df_terakhir.empty:
         for _, row in df_terakhir.iterrows():
-            if row["Stok Akhir"] > 0:
+            if row["Stcok Akhir"] > 0:
                 combined_data.append({
                     "Team/Promotor": row["Team/Promotor"],
                     "Merk Rokok": row["Merk Rokok"],
-                    "Stok Terakhir": row["Stok Akhir"],
+                    "Stock Terakhir": row["Stock Akhir"],
                     "Bon Hari Ini (Bungkus)": 0,
-                    "Total Stock Awal": row["Stok Akhir"]
+                    "Total Stock Awal": row["Stock Akhir"]
                 })
 
     if not df_bon_hari_ini.empty:
@@ -250,7 +250,7 @@ with tab_stock:
             for item in combined_data:
                 if item["Team/Promotor"] == team and item["Merk Rokok"] == merk:
                     item["Bon Hari Ini (Bungkus)"] += qty_bon
-                    item["Total Stock Awal"] = item["Stok Terakhir"] + item["Bon Hari Ini (Bungkus)"]
+                    item["Total Stock Awal"] = item["Stock Terakhir"] + item["Bon Hari Ini (Bungkus)"]
                     found = True
                     break
             if not found:
@@ -258,7 +258,7 @@ with tab_stock:
                     combined_data.append({
                         "Team/Promotor": team,
                         "Merk Rokok": merk,
-                        "Stok Terakhir": 0,
+                        "Stock Terakhir": 0,
                         "Bon Hari Ini (Bungkus)": qty_bon,
                         "Total Stock Awal": qty_bon
                     })
@@ -268,7 +268,7 @@ with tab_stock:
     if final_combined_data:
         st.dataframe(pd.DataFrame(final_combined_data), use_container_width=True)
     else:
-        st.info("Tidak ada sisa stok aktif atau bon baru untuk hari ini (semua stok bernilai 0 / habis).")
+        st.info("Tidak Ada Sisa Stock Aktif atau Bon Baru Untuk Hari Ini (Semua Stock Bernilai 0 / Habis).")
 
 # ================= TAB 1: INPUT TRANSAKSI =================
 with tab1:
@@ -359,10 +359,10 @@ with tab1:
     with st.form(f"form_transaksi_layout_{st.session_state.trx_form_reset_id}", clear_on_submit=True):
         
         st.markdown("**Pilih Merk Rokok & Stock Awal (Stock Kemarin + Bon Hari Ini)**")
-        stok_awal_values = {}
+        stoCk_awal_values = {}
         
         for merk in active_merks:
-            stok_terakhir = 0
+            stock_terakhir = 0
             if current_active_nama and not st.session_state.df_transaksi.empty:
                 df_sorted_trx = st.session_state.df_transaksi.sort_values(by="Tanggal", ascending=False)
                 match_terakhir = df_sorted_trx[
@@ -370,7 +370,7 @@ with tab1:
                     (df_sorted_trx["Merk Rokok"] == merk)
                 ]
                 if not match_terakhir.empty:
-                    stok_terakhir = int(match_terakhir.iloc[0]["Stok Akhir"])
+                    stock_terakhir = int(match_terakhir.iloc[0]["Stock Akhir"])
 
             bon_hari_ini = 0
             if current_active_bon and not st.session_state.df_bon.empty:
@@ -381,14 +381,14 @@ with tab1:
                 if not match_bon.empty:
                     bon_hari_ini = int(match_bon.iloc[0]["Total Setara Bungkus"])
 
-            val_awal = stok_terakhir + bon_hari_ini
-            stok_awal_values[merk] = val_awal
+            val_awal = stock_terakhir + bon_hari_ini
+            stock_awal_values[merk] = val_awal
 
             c_m, c_v = st.columns([3, 2])
             with c_m:
                 st.markdown(f"🚬 **{merk}**")
             with c_v:
-                st.markdown(f"📦 **{val_awal:,} bks** *(Stok Terakhir: {stok_terakhir} + Bon: {bon_hari_ini})*")
+                st.markdown(f"📦 **{val_awal:,} bks** *(Stock Terakhir: {stock_terakhir} + Bon: {bon_hari_ini})*")
 
         st.markdown("---")
         st.markdown("**Rokok Belum Selesai / Gantung** | **Jumlah (dalam satuan bungkus)**")
@@ -468,7 +468,7 @@ with tab1:
             else:
                 saved_count = 0
                 for merk in active_merks:
-                    s_awal = stok_awal_values[merk]
+                    s_awal = stock_awal_values[merk]
                     s_akhir = akhir_inputs[merk]
                     s_gantung = gantung_inputs[merk]
                     s_lain = lain_inputs[merk]  
@@ -486,8 +486,8 @@ with tab1:
                         "Minggu": current_week,
                         "Team/Promotor": final_input_nama if final_input_nama else "Tanpa Nama",
                         "Merk Rokok": merk,
-                        "Stok Awal": s_awal,
-                        "Stok Akhir": s_akhir,
+                        "Stock Awal": s_awal,
+                        "Stock Akhir": s_akhir,
                         "Belum Selesai": s_gantung,
                         "Rokok Lain-lain": s_lain,                
                         "Terjual": terjual,
@@ -563,8 +563,8 @@ with tab2:
         if not df_filtered.empty:
             df_sorted_all = df_filtered.sort_values(by="Tanggal", ascending=False)
             df_latest_stock = df_sorted_all.drop_duplicates(subset=["Team/Promotor", "Merk Rokok"], keep="first")
-            df_sisa_merk = df_latest_stock.groupby("Merk Rokok")["Stok Akhir"].sum().reset_index()
-            df_sisa_merk.columns = ["Merk Rokok", "Sisa Stok Akhir Terakhir (Bungkus)"]
+            df_sisa_merk = df_latest_stock.groupby("Merk Rokok")["Stock Akhir"].sum().reset_index()
+            df_sisa_merk.columns = ["Merk Rokok", "Sisa Stock Akhir Terakhir (Bungkus)"]
             st.dataframe(df_sisa_merk, use_container_width=True)
         else:
             st.info("Tidak ada data untuk team ini.")
