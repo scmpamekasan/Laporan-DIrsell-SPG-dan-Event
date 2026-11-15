@@ -745,7 +745,7 @@ with tab1:
                 
 # ================= TAB 3: TABEL REKAP & EDIT =================
 with tab2:
-    st.subheader("📊 Tabel Rekapitulasi & ✏️ Edit Data Transaksi")
+    st.subheader("📊 Rekapitulasi Data Transaksi")
     
     if not st.session_state.df_transaksi.empty:
         if "No Bon" not in st.session_state.df_transaksi.columns:
