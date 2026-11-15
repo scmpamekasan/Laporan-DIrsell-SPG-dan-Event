@@ -812,6 +812,17 @@ with tab2:
             st.info("Tidak ada data rekapitulasi team untuk filter terpilih.")
 
         st.markdown("---")
+        st.markdown("### 📋 Rekapitulasi Berdasarkan Nomor Bon")
+        if "No Bon" in df_filtered.columns and not df_filtered.empty:
+            df_rekap_bon = df_filtered.groupby("No Bon").agg({
+                "Team/Promotor": "first", "Tanggal": "first", "Terjual": "sum",
+                "Rokok Lain-lain": "sum", "Total Setoran Kanvas": "sum", "Total Setoran Konsumen": "sum"
+            }).reset_index()
+            st.dataframe(df_rekap_bon, use_container_width=True)
+        else:
+            st.info("Tidak ada data rekapitulasi bon untuk filter terpilih.")
+
+        st.markdown("---")
         st.markdown(f"### 📦 Kondisi Sisa Stock Akhir Terakhir per Merk Rokok")
         
         df_active_tab2 = get_active_remaining_stocks()
@@ -824,17 +835,6 @@ with tab2:
             st.dataframe(df_sisa_merk, use_container_width=True)
         else:
             st.info("Tidak ada sisa stock aktif (semua stock sudah habis atau diselesaikan ke gudang).")
-
-        st.markdown("---")
-        st.markdown("### 📋 Rekapitulasi Berdasarkan Nomor Bon")
-        if "No Bon" in df_filtered.columns and not df_filtered.empty:
-            df_rekap_bon = df_filtered.groupby("No Bon").agg({
-                "Team/Promotor": "first", "Tanggal": "first", "Terjual": "sum",
-                "Rokok Lain-lain": "sum", "Total Setoran Kanvas": "sum", "Total Setoran Konsumen": "sum"
-            }).reset_index()
-            st.dataframe(df_rekap_bon, use_container_width=True)
-        else:
-            st.info("Tidak ada data rekapitulasi bon untuk filter terpilih.")
 
         st.divider()
         st.markdown("### 🗑️ Menu Hapus Data")
