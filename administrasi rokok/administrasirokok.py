@@ -785,7 +785,7 @@ with tab2:
         st.markdown("---")
         st.markdown(f"### 💰 Grand Total & Ringkasan Keuangan (Filter Aktif)")
         
-        grand_total_konsumen = pd.to_numeric(df_filtered["Total Setoran"], errors='coerce').sum()
+        grand_total_setoran = pd.to_numeric(df_filtered["Total Setoran"], errors='coerce').sum()
         grand_total_kanvas = pd.to_numeric(df_filtered["Total Setoran Kanvas"], errors='coerce').sum()
         total_terjual = pd.to_numeric(df_filtered["Terjual"], errors='coerce').sum()
         total_lain = pd.to_numeric(df_filtered["Rokok Lain-lain"], errors='coerce').sum() if "Rokok Lain-lain" in df_filtered.columns else 0
@@ -798,7 +798,7 @@ with tab2:
         with col_gt3:
             st.metric("Grand Total Kanvas", f"Rp {grand_total_kanvas:,.0f}")
         with col_gt4:
-            st.metric("🎯 Total Setoran", f"Rp {grand_total_konsumen:,.0f}")
+            st.metric("🎯 Total Setoran", f"Rp {grand_total_setoran:,.0f}")
 
         # ==========================================
         # DETAIL ROKOK YANG LAKU DI BAWAH GRAND TOTAL
