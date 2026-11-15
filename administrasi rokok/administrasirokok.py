@@ -248,6 +248,17 @@ dict_master_detail = {item["merk"]: item for item in master_rokok}
 
 # Header Utama
 st.title("🚬 Sistem Administrasi Stock & Penjualan Rokok")
+st.markdown(
+    """
+    <div style="text-align:center; margin-top:8px; color:#8a8f98;
+                font-size:11px; letter-spacing:0.4px;">
+        © 2026 <span style="font-weight:600; color:#c9a227;">
+            Eureka Management System
+        </span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 st.markdown("Pencatatan Stock Rokok - Bon Rokok - Rokok Gantung/Belum Selesai - Setoran Hasil Penjualan")
 
 # --- SIDEBAR: NAVIGASI & ROLE ---
@@ -261,17 +272,6 @@ except Exception:
     col1, col2, col3 = st.sidebar.columns([1, 2, 1])
     with col2:
         st.image("https://img.icons8.com/color/96/wooden-crate.png", width=120)
-        st.markdown(
-    """
-    <div style="text-align:center; margin-top:8px; color:#8a8f98;
-                font-size:11px; letter-spacing:0.4px;">
-        © 2026 <span style="font-weight:600; color:#c9a227;">
-            Eureka Management System
-        </span>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
 
 st.sidebar.header("Menu")
 role = st.sidebar.selectbox("User Login", ["Promotor", "PIC Dirsell & Event", "Admin"])
