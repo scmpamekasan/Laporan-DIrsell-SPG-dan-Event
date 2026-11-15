@@ -1372,3 +1372,5 @@ with tab4:
                 st.rerun()
             else:
                 st.warning("Centang kotak konfirmasi terlebih dahulu.")
+
+    st.write(f"Total merk rokok dimuat dari JSON: {len(list_merk)} merk")
