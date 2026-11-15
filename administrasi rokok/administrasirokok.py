@@ -386,6 +386,22 @@ with tab_pre_entry:
         st.session_state[pre_nama_key] = ""
 
     with st.expander("➕ Buat Draft Bon Baru (Multi-Merk)", expanded=True):
+        
+        # --- RECENT NAMES CHIPS DILETAKKAN DI SINI (SEBELUM FORM) ---
+        recent_pre_names = []
+        if not st.session_state.df_pre_entry_bon.empty and "Team/Promotor" in st.session_state.df_pre_entry_bon.columns:
+            recent_pre_names = st.session_state.df_pre_entry_bon["Team/Promotor"].dropna().unique().tolist()[-5:]
+
+        if recent_pre_names:
+            st.markdown("🕒 **Riwayat Nama Pengebon Terakhir (Klik untuk mengisi cepat):**")
+            cols_chip_pre = st.columns(min(len(recent_pre_names), 5))
+            for idx, p_name in enumerate(recent_pre_names):
+                with cols_chip_pre[idx]:
+                    if st.button(f"👤 {p_name}", key=f"chip_pre_name_{idx}", use_container_width=True):
+                        st.session_state[pre_nama_key] = p_name
+                        st.rerun()
+            st.markdown("")
+
         with st.form(f"form_pre_entry_{st.session_state.pre_form_reset_id}", clear_on_submit=True):
             st.markdown("#### Informasi Draft Bon")
             
