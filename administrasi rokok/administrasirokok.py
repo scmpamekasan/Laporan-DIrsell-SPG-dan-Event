@@ -800,6 +800,34 @@ with tab2:
         with col_gt4:
             st.metric("🎯 Total Setoran Konsumen", f"Rp {grand_total_konsumen:,.0f}")
 
+        # ==========================================
+        # DETAIL ROKOK YANG LAKU DI BAWAH GRAND TOTAL
+        # ==========================================
+        st.markdown("")
+        st.markdown("#### 📦 Detail Rokok yang Laku, Grand Total Kanvas & Total Setoran Konsumen per Merk")
+        
+        if not df_filtered.empty:
+            df_detail_laku = df_filtered.groupby("Merk Rokok").agg({
+                "Terjual": "sum",
+                "Harga Kanvas": "first",
+                "Harga Konsumen": "first",
+                "Total Setoran Kanvas": "sum",
+                "Total Setoran Konsumen": "sum"
+            }).reset_index()
+
+            # Ubah nama kolom agar lebih rapi dan informatif
+            df_detail_laku.columns = [
+                "Merk Rokok", 
+                "Rokok Laku (Bks)", 
+                "Harga Kanvas", 
+                "Harga Konsumen", 
+                "Grand Total Kanvas", 
+                "Total Setoran Konsumen"
+            ]
+
+            st.dataframe(df_detail_laku, use_container_width=True)
+        else:
+            st.info("Tidak ada data detail untuk filter terpilih.")
 
         st.markdown("---")
         st.markdown("### 👥 Rekapitulasi Berdasarkan Team / Promotor")
