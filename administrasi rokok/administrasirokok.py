@@ -9,7 +9,15 @@ import json
 
 from app_config import setup_page_config, apply_custom_styling
 from date_utils import get_current_week_label, format_date_indo
-from data_store import load_master_harga, init_session_state
+from data_store import load_master_harga, init_session_state, save_master_harga
+
+# Pastikan pemanggilan ini ada dan tidak di-override oleh variabel lokal lain:
+if "master_rokok_data" not in st.session_state:
+    st.session_state.master_rokok_data = load_master_harga()
+
+master_rokok = st.session_state.master_rokok_data
+list_merk = [item["merk"] for item in master_rokok]
+dict_master_detail = {item["merk"]: item for item in master_rokok}
 
 # ==========================================
 # GANTI DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA
