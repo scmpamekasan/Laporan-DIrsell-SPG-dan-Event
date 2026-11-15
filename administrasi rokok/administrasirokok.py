@@ -74,6 +74,11 @@ def load_from_google_sheets():
             trx_vals = db_data.get("transaksi", [])
             if len(trx_vals) > 1:
                 df_trx_loaded = pd.DataFrame(trx_vals[1:], columns=trx_vals[0])
+                
+                # Migrasi nama kolom lama jika ada di GSheet
+                if "Total Setoran Konsumen" in df_trx_loaded.columns and "Total Setoran" not in df_trx_loaded.columns:
+                    df_trx_loaded = df_trx_loaded.rename(columns={"Total Setoran Konsumen": "Total Setoran"})
+                
                 num_cols_trx = [
                     "Stock Awal", "Stock Akhir", "Belum Selesai", "Rokok Lain-lain",
                     "Terjual", "Harga Kanvas", "Harga Konsumen", "Total Setoran Kanvas", "Total Setoran"
@@ -81,6 +86,11 @@ def load_from_google_sheets():
                 for col in num_cols_trx:
                     if col in df_trx_loaded.columns:
                         df_trx_loaded[col] = pd.to_numeric(df_trx_loaded[col], errors='coerce').fillna(0)
+                
+                # Pastikan kolom Total Setoran benar-benar ada
+                if "Total Setoran" not in df_trx_loaded.columns:
+                    df_trx_loaded["Total Setoran"] = 0
+
                 st.session_state.df_transaksi = df_trx_loaded
             else:
                 st.session_state.df_transaksi = pd.DataFrame(columns=[
@@ -115,7 +125,7 @@ def load_from_google_sheets():
                 st.session_state.df_pre_entry_bon = df_pre_loaded
             else:
                 st.session_state.df_pre_entry_bon = pd.DataFrame(columns=[
-                    "ID Draftt", "Tanggal", "Rencana Penyelesaian", "Team/Promotor", "Merk Rokok", 
+                    "ID Draft", "Tanggal", "Rencana Penyelesaian", "Team/Promotor", "Merk Rokok", 
                     "Ball", "Slop", "Bungkus", "Total Setara Bungkus", "Keperluan", "Keterangan"
                 ])
 
@@ -193,7 +203,7 @@ if "master_rokok_data" not in st.session_state:
 
 if "df_pre_entry_bon" not in st.session_state:
     st.session_state.df_pre_entry_bon = pd.DataFrame(columns=[
-        "ID Draftt", "Tanggal", "Rencana Penyelesaian", "Team/Promotor", "Merk Rokok", 
+        "ID Draft", "Tanggal", "Rencana Penyelesaian", "Team/Promotor", "Merk Rokok", 
         "Ball", "Slop", "Bungkus", "Total Setara Bungkus", "Keperluan", "Keterangan"
     ])
 elif "Rencana Penyelesaian" not in st.session_state.df_pre_entry_bon.columns:
@@ -203,6 +213,13 @@ if "df_penyelesaian_gudang" not in st.session_state:
     st.session_state.df_penyelesaian_gudang = pd.DataFrame(columns=[
         "ID Penyelesaian", "Tanggal", "Team/Promotor", "Merk Rokok", "Jumlah Bungkus", "Keterangan"
     ])
+
+# Kompatibilitas migrasi nama kolom lama jika ada di session state lokal
+if not st.session_state.df_transaksi.empty:
+    if "Total Setoran Konsumen" in st.session_state.df_transaksi.columns and "Total Setoran" not in st.session_state.df_transaksi.columns:
+        st.session_state.df_transaksi = st.session_state.df_transaksi.rename(columns={"Total Setoran Konsumen": "Total Setoran"})
+    if "Total Setoran" not in st.session_state.df_transaksi.columns:
+        st.session_state.df_transaksi["Total Setoran"] = 0
 
 # ==========================================
 # OTOMATIS LOAD DATA SAAT PERTAMA KALI DIBUKA
@@ -394,7 +411,7 @@ with tab_pre_entry:
                         if total_setara > 0:
                             ket_final = keterangan_pre_umum if keterangan_pre_umum else f"Draft Permintaan"
                             new_Draftt_row = {
-                                "ID Draftt": Draftt_group_id,
+                                "ID Draft": Draftt_group_id,
                                 "Tanggal": str(selected_date),
                                 "Rencana Penyelesaian": str(rencana_penyelesaian_date),
                                 "Team/Promotor": team_pre,
@@ -423,7 +440,7 @@ with tab_pre_entry:
         st.dataframe(st.session_state.df_pre_entry_bon, use_container_width=True)
 
         st.markdown("#### 🚀 Submit Draft Menjadi Bon Resmi (Masukkan No Bon dari Admin)")
-        unique_Draftt_ids = st.session_state.df_pre_entry_bon["ID Draftt"].unique().tolist()
+        unique_Draftt_ids = st.session_state.df_pre_entry_bon["ID Draft"].unique().tolist()
         
         col_sub1, col_sub2, col_sub3 = st.columns([2, 2, 1])
         with col_sub1:
@@ -441,7 +458,7 @@ with tab_pre_entry:
                 st.error("No Bon Resmi dari Admin wajib diisi!")
             else:
                 rows_to_move = st.session_state.df_pre_entry_bon[
-                    st.session_state.df_pre_entry_bon["ID Draftt"] == selected_Draftt_to_submit
+                    st.session_state.df_pre_entry_bon["ID Draft"] == selected_Draftt_to_submit
                 ]
                 
                 for _, r in rows_to_move.iterrows():
@@ -462,7 +479,7 @@ with tab_pre_entry:
                     ], ignore_index=True)
 
                 st.session_state.df_pre_entry_bon = st.session_state.df_pre_entry_bon[
-                    st.session_state.df_pre_entry_bon["ID Draftt"] != selected_Draftt_to_submit
+                    st.session_state.df_pre_entry_bon["ID Draft"] != selected_Draftt_to_submit
                 ]
 
                 st.success(f"🎉 Draft {selected_Draftt_to_submit} berhasil disubmit dengan No Bon Resmi **{input_no_bon_asli.strip()}**!")
@@ -471,7 +488,7 @@ with tab_pre_entry:
         if st.button("🗑️ Hapus Draft Terpilih"):
             if selected_Draftt_to_submit != "-":
                 st.session_state.df_pre_entry_bon = st.session_state.df_pre_entry_bon[
-                    st.session_state.df_pre_entry_bon["ID Draftt"] != selected_Draftt_to_submit
+                    st.session_state.df_pre_entry_bon["ID Draft"] != selected_Draftt_to_submit
                 ]
                 st.success(f"Draft {selected_Draftt_to_submit} berhasil dihapus.")
                 st.rerun()
@@ -712,7 +729,7 @@ with tab1:
                     
                     terjual = max(0, (s_awal - s_akhir) - s_gantung - s_lain)
                     tot_kanvas = terjual * h_kanvas
-                    tot_konsumen = terjual * h_konsumen
+                    tot_setoran = terjual * h_konsumen
 
                     new_row = {
                         "ID": str(uuid.uuid4())[:8],
@@ -729,7 +746,7 @@ with tab1:
                         "Harga Kanvas": h_kanvas,
                         "Harga Konsumen": h_konsumen,
                         "Total Setoran Kanvas": tot_kanvas,
-                        "Total Setoran": tot_konsumen
+                        "Total Setoran": tot_setoran
                     }
                     st.session_state.df_transaksi = pd.concat([st.session_state.df_transaksi, pd.DataFrame([new_row])], ignore_index=True)
                     saved_count += 1
@@ -750,6 +767,13 @@ with tab2:
     if not st.session_state.df_transaksi.empty:
         if "No Bon" not in st.session_state.df_transaksi.columns:
             st.session_state.df_transaksi["No Bon"] = st.session_state.df_transaksi["ID"]
+        
+        # Jaminan pengaman kolom Total Setoran agar tidak KeyError
+        if "Total Setoran" not in st.session_state.df_transaksi.columns:
+            if "Total Setoran Konsumen" in st.session_state.df_transaksi.columns:
+                st.session_state.df_transaksi = st.session_state.df_transaksi.rename(columns={"Total Setoran Konsumen": "Total Setoran"})
+            else:
+                st.session_state.df_transaksi["Total Setoran"] = 0
 
         st.markdown("### ✏️ Edit Data Transaksi Langsung")
         edited_df = st.data_editor(st.session_state.df_transaksi, num_rows="dynamic", use_container_width=True, key="editable_transaction_table")
@@ -781,6 +805,10 @@ with tab2:
             df_filtered = df_filtered[df_filtered["Tanggal"] == selected_filter_tgl]
         if selected_filter_bon != "Semua No Bon":
             df_filtered = df_filtered[df_filtered["No Bon"] == selected_filter_bon]
+
+        # Amankan kolom Total Setoran pada df_filtered
+        if "Total Setoran" not in df_filtered.columns:
+            df_filtered["Total Setoran"] = 0
 
         st.markdown("---")
         st.markdown(f"### 💰 Grand Total & Ringkasan Keuangan (Filter Aktif)")
@@ -815,7 +843,6 @@ with tab2:
                 "Total Setoran": "sum"
             }).reset_index()
 
-            # Ubah nama kolom agar lebih rapi dan informatif
             df_detail_laku.columns = [
                 "Merk Rokok", 
                 "Rokok Laku (Bks)", 
@@ -901,6 +928,9 @@ with tab_lap_team:
             filter_date_chosen = st.selectbox("Filter Tanggal", options=list_dates_lap, key="filter_date_lap")
 
         df_lap = st.session_state.df_transaksi.copy()
+        if "Total Setoran" not in df_lap.columns:
+            df_lap["Total Setoran"] = 0
+
         if filter_team_chosen != "Semua Team":
             df_lap = df_lap[df_lap["Team/Promotor"] == filter_team_chosen]
         if filter_date_chosen != "Semua Tanggal":
@@ -912,7 +942,7 @@ with tab_lap_team:
             }).reset_index()
 
             df_grouped_lap.columns = [
-                "Merk Rokok", "Harga Kanvas (per Bungkus)", "Jumlah Rokok Laku (Bks)", "Total (Harga Kanvas)", "Total (Harga Konsumen)"
+                "Merk Rokok", "Harga Kanvas (per Bungkus)", "Jumlah Rokok Laku (Bks)", "Total (Harga Kanvas)", "Total Setoran"
             ]
 
             st.markdown("#### Tabel Ringkasan Penjualan")
