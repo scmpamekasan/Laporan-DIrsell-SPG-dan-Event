@@ -325,7 +325,6 @@ with tab_pre_entry:
                         st.session_state.df_bon, pd.DataFrame([official_bon_row])
                     ], ignore_index=True)
 
-                # Hapus draf yang sudah disubmit agar otomatis hilang dari pre-entry dan management bon
                 st.session_state.df_pre_entry_bon = st.session_state.df_pre_entry_bon[
                     st.session_state.df_pre_entry_bon["ID Draft"] != selected_draft_to_submit
                 ]
@@ -864,13 +863,12 @@ with tab3:
     st.subheader("📋 Management & Rekap Data Bon Rokok")
     
     # ----------------------------------------------------
-    # BAGIAN 1: LAPORAN DRAF PRE ENTRY BON (DENGAN FILTER RENCANA PENYELESAIAN)
+    # BAGIAN 1: LAPORAN DRAF PRE ENTRY BON (DENGAN FILTER, EXCEL, PREVIEW & PRINT)
     # ----------------------------------------------------
     st.markdown("### 📥 Rekapitulasi Draf Pre Entry Bon (Belum Disubmit)")
-    st.markdown("Filter dan ringkasan konversi satuan draf bon berdasarkan tanggal rencana penyelesaian.")
+    st.markdown("Filter, unduh, pratinjau cetak, dan cetak rekapitulasi draf bon berdasarkan tanggal rencana penyelesaian.")
 
     if not st.session_state.df_pre_entry_bon.empty:
-        # Filter berdasarkan Rencana Penyelesaian
         list_rencana_tgl = ["Semua Tanggal"] + sorted(st.session_state.df_pre_entry_bon["Rencana Penyelesaian"].dropna().unique().tolist())
         selected_filter_rencana = st.selectbox("📅 Filter Berdasarkan Tanggal Rencana Penyelesaian Bon", options=list_rencana_tgl, key="filter_rencana_penyelesaian_bon")
 
@@ -907,6 +905,62 @@ with tab3:
 
             df_pre_display = pd.DataFrame(pre_konversi_list)
             st.dataframe(df_pre_display, use_container_width=True)
+
+            # --- FITUR DOWNLOAD EXCEL, PREVIEW PRINT, & PRINT ---
+            col_act1, col_act2, col_act3 = st.columns(3)
+            
+            # 1. Download Excel
+            output_pre = io.BytesIO()
+            with pd.ExcelWriter(output_pre, engine='openpyxl') as writer:
+                df_pre_display.to_excel(writer, index=False, sheet_name='Rekap Draf Pre-Entry')
+            excel_pre_data = output_pre.getvalue()
+            
+            with col_act1:
+                st.download_button(
+                    label="📥 Download Excel Draf",
+                    data=excel_pre_data,
+                    file_name=f"Rekap_Draf_PreEntry_{selected_filter_rencana}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    type="primary"
+                )
+
+            # 2. Preview Print & 3. Print (Menggunakan HTML/JS Window Print)
+            html_table = df_pre_display.to_html(index=False, classes='table table-striped')
+            print_html = f"""
+            <html>
+                <head>
+                    <title>Cetak Rekap Draf Pre Entry Bon</title>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; padding: 20px; }}
+                        h2 {{ text-align: center; }}
+                        table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+                        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                        th {{ background-color: #f2f2f2; }}
+                    </style>
+                </head>
+                <body>
+                    <h2>Rekapitulasi Draf Pre Entry Bon</h2>
+                    <p><b>Tanggal Rencana Penyelesaian:</b> {selected_filter_rencana}</p>
+                    {html_table}
+                    <script>
+                        window.onload = function() {{ window.print(); }}
+                    </script>
+                </body>
+            </html>
+            """
+
+            with col_act2:
+                if st.button("👁️ Preview Print Draf"):
+                    st.components.v1.html(print_html, height=400, scrolling=True)
+
+            with col_act3:
+                # Tombol Print Langsung via Web Browser
+                st.download_button(
+                    label="🖨️ Print Rekap Draf",
+                    data=print_html,
+                    file_name=f"Print_Rekap_Draf_{selected_filter_rencana}.html",
+                    mime="text/html"
+                )
 
             with st.expander("🔎 Lihat Detail Rincian Baris Draf Pre Entry"):
                 st.dataframe(df_pre_filtered, use_container_width=True)
