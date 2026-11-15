@@ -333,29 +333,28 @@ with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
     
     if selected_edit_merk:
         current_detail = dict_master_detail[selected_edit_merk]
-        wwith st.form(f"form_edit_harga_{selected_edit_merk}"):
-        up_kanvas = st.number_input("Harga Kanvas Baru", min_value=0, value=int(current_detail.get("harga_kanvas", 0)), step=100)
-        up_konsumen = st.number_input("Harga Konsumen Baru", min_value=0, value=int(current_detail.get("harga_konsumen", 0)), step=100)
         
-        # --- CSS KUSTOM KHUSUS TOMBOL DI DALAM FORM INI ---
-        st.markdown("""
-            <style>
-            /* Mengubah tombol submit form di sidebar menjadi kuning emas */
-            div[data-testid="stSidebar"] form button[type="submit"] {
-                background-color: #FFD700 !important;
-                color: #000000 !important;
-                border: 1px solid #DAA520 !important;
-                font-weight: bold !important;
-            }
-            div[data-testid="stSidebar"] form button[type="submit"]:hover {
-                background-color: #E6C200 !important;
-                color: #000000 !important;
-            }
-            </style>
-        """, unsafe_allow_html=True)
+        with st.form(f"form_edit_harga_{selected_edit_merk}"):
+            up_kanvas = st.number_input("Harga Kanvas Baru", min_value=0, value=int(current_detail.get("harga_kanvas", 0)), step=100)
+            up_konsumen = st.number_input("Harga Konsumen Baru", min_value=0, value=int(current_detail.get("harga_konsumen", 0)), step=100)
+            
+            # --- CSS KUSTOM KHUSUS TOMBOL DI DALAM FORM INI ---
+            st.markdown("""
+                <style>
+                div[data-testid="stSidebar"] form button[type="submit"] {
+                    background-color: #FFD700 !important;
+                    color: #000000 !important;
+                    border: 1px solid #DAA520 !important;
+                    font-weight: bold !important;
+                }
+                div[data-testid="stSidebar"] form button[type="submit"]:hover {
+                    background-color: #E6C200 !important;
+                    color: #000000 !important;
+                }
+                </style>
+            """, unsafe_allow_html=True)
 
-        btn_save_harga = st.form_submit_button("💾 Simpan Perubahan Harga")
-        
+            btn_save_harga = st.form_submit_button("💾 Simpan Perubahan Harga")
             if btn_save_harga:
                 for item in st.session_state.master_rokok_data:
                     if item["merk"] == selected_edit_merk:
@@ -363,13 +362,16 @@ with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
                         item["harga_konsumen"] = int(up_konsumen)
                         break
                 
+                # Simpan ke file JSON
+                save_master_harga(st.session_state.master_rokok_data)
+                
                 harga_widget_key = f"harga_konsumen_{st.session_state.trx_form_reset_id}_{selected_edit_merk}"
                 if harga_widget_key in st.session_state:
                     st.session_state[harga_widget_key] = int(up_konsumen)
                 
                 st.success(f"Harga {selected_edit_merk} berhasil diperbarui!")
                 st.rerun()
-
+                
 st.sidebar.divider()
 selected_date = st.sidebar.date_input("Pilih Tanggal Laporan", datetime.now())
 current_week = get_current_week_label(selected_date)
