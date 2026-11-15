@@ -504,7 +504,9 @@ with tab_pre_entry:
         cols_chip_pre = st.columns(min(len(recent_pre_names), 5))
         for idx, p_name in enumerate(recent_pre_names):
             with cols_chip_pre[idx]:
-                if st.button(f"👤 {p_name}", key=f"chip_pre_name_{idx}", use_container_width=True):
+                # PERBAIKAN: Tambahkan pengenal unik (misal: st.session_state.pre_form_reset_id) pada key tombol
+                chip_unique_key = f"chip_pre_name_{st.session_state.pre_form_reset_id}_{idx}_{p_name}"
+                if st.button(f"👤 {p_name}", key=chip_unique_key, use_container_width=True):
                     st.session_state[pre_nama_key] = p_name
                     st.rerun()
 
