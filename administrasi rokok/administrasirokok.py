@@ -102,14 +102,14 @@ tab_stock, tab1, tab2, tab_lap_team, tab3, tab4 = st.tabs([
     "📝 Input Transaksi", 
     "📊 Tabel Rekap & Edit", 
     "👥 Laporan Per Team",
-    "📋 Manajemen Bon", 
+    "📋 Management Bon", 
     "⚙️ Reset & Hapus Data"
 ])
 
 # ================= TAB 0: STOCK ROKOK (BON MULTI-MERK) =================
 with tab_stock:
-    st.subheader("📦 Manajemen Stock Rokok & Bon Multi-Merk")
-    st.markdown("Input 1 nomor bon untuk sekaligus banyak merk rokok, pantau sisa stock terakhir, serta kalkulasi stock awal hari ini.")
+    st.subheader("📦 Management Stock Rokok & Bon Multi-Merk")
+    st.markdown("Input 1 Nomor Bon Untuk Beberapa Merk Rokok, Pantau Sisa Stock Terakhir, Serta Kalkulasi Stock Awal Hari Ini.")
 
     if "bon_form_reset_id" not in st.session_state:
         st.session_state.bon_form_reset_id = 0
@@ -677,9 +677,9 @@ with tab_lap_team:
     else:
         st.info("Belum ada data transaksi tercatat untuk dibuatkan laporan.")
 
-# ================= TAB 4: MANAJEMEN BON (REKAP KONVERSI BALL, SLOP, BUNGKUS) =================
+# ================= TAB 4: Management BON (REKAP KONVERSI BALL, SLOP, BUNGKUS) =================
 with tab3:
-    st.subheader("📋 Manajemen & Rekap Data Bon Rokok")
+    st.subheader("📋 Management & Rekap Data Bon Rokok")
     st.markdown("Pilih beberapa keterangan sekaligus, lalu lihat ringkasan gabungan jumlah merk rokok lengkap dengan konversi otomatis Ball, Slop, & Bungkus.")
 
     if not st.session_state.df_bon.empty:
