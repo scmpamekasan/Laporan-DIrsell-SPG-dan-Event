@@ -852,38 +852,41 @@ with tab2:
         if "No Bon" not in st.session_state.df_transaksi.columns:
             st.session_state.df_transaksi["No Bon"] = st.session_state.df_transaksi["ID"]
 
-        # ----------------------------------------------------
-        # FILTER BY TANGGAL PENYELESAIAN BON (TANGGAL TRANSAKSI)
-        # ----------------------------------------------------
-        st.markdown("### 📅 Filter Data")
-        list_tgl_transaksi = ["Semua Tanggal"] + sorted(st.session_state.df_transaksi["Tanggal"].dropna().unique().tolist(), reverse=True)
-        selected_filter_tgl_trx = st.selectbox("Filter Berdasarkan Tanggal Penyelesaian Bon (Tanggal Transaksi)", options=list_tgl_transaksi, key="filter_tgl_transaksi_tab2")
-
-        df_view_trx = st.session_state.df_transaksi.copy()
-        if selected_filter_tgl_trx != "Semua Tanggal":
-            df_view_trx = df_view_trx[df_view_trx["Tanggal"] == selected_filter_tgl_trx]
-
         st.markdown("### ✏️ Edit Data Transaksi Langsung")
-        edited_df = st.data_editor(df_view_trx, num_rows="dynamic", use_container_width=True, key="editable_transaction_table")
-        if not edited_df.equals(df_view_trx):
-            # Update kembali ke dataframe utama berdasarkan ID unik
+        edited_df = st.data_editor(st.session_state.df_transaksi, num_rows="dynamic", use_container_width=True, key="editable_transaction_table")
+        if not edited_df.equals(st.session_state.df_transaksi):
             for idx, row in edited_df.iterrows():
                 row_id = row["ID"]
                 st.session_state.df_transaksi.loc[st.session_state.df_transaksi["ID"] == row_id] = row
             st.rerun()
 
         st.divider()
-        st.markdown("### 🔍 Filter Berdasarkan Team / Promotor")
+        st.markdown("### 🔍 Filter Berdasarkan Team / Promotor, Tanggal & No Bon")
+        
+        # Opsi filter tambahan
         list_teams = ["Semua Team"] + st.session_state.df_transaksi["Team/Promotor"].unique().tolist()
-        selected_filter_team = st.selectbox("Pilih Team / Promotor untuk Filter Ringkasan", options=list_teams, key="filter_team_tab2")
+        list_tgl_penyelesaian = ["Semua Tanggal"] + sorted(st.session_state.df_transaksi["Tanggal"].dropna().unique().tolist(), reverse=True)
+        list_no_bon = ["Semua No Bon"] + sorted(st.session_state.df_transaksi["No Bon"].dropna().unique().tolist())
 
-        if selected_filter_team == "Semua Team":
-            df_filtered = st.session_state.df_transaksi
-        else:
-            df_filtered = st.session_state.df_transaksi[st.session_state.df_transaksi["Team/Promotor"] == selected_filter_team]
+        col_f_1, col_f_2, col_f_3 = st.columns(3)
+        with col_f_1:
+            selected_filter_team = st.selectbox("Pilih Team / Promotor", options=list_teams, key="filter_team_tab2")
+        with col_f_2:
+            selected_filter_tgl = st.selectbox("Tanggal Penyelesaian Bon", options=list_tgl_penyelesaian, key="filter_tgl_tab2")
+        with col_f_3:
+            selected_filter_bon = st.selectbox("No Bon", options=list_no_bon, key="filter_bon_tab2")
+
+        # Terapkan filter berlapis
+        df_filtered = st.session_state.df_transaksi.copy()
+        if selected_filter_team != "Semua Team":
+            df_filtered = df_filtered[df_filtered["Team/Promotor"] == selected_filter_team]
+        if selected_filter_tgl != "Semua Tanggal":
+            df_filtered = df_filtered[df_filtered["Tanggal"] == selected_filter_tgl]
+        if selected_filter_bon != "Semua No Bon":
+            df_filtered = df_filtered[df_filtered["No Bon"] == selected_filter_bon]
 
         st.markdown("---")
-        st.markdown(f"### 💰 Grand Total & Ringkasan Keuangan ({selected_filter_team})")
+        st.markdown(f"### 💰 Grand Total & Ringkasan Keuangan (Filter Aktif)")
         
         grand_total_konsumen = pd.to_numeric(df_filtered["Total Setoran Konsumen"], errors='coerce').sum()
         grand_total_kanvas = pd.to_numeric(df_filtered["Total Setoran Kanvas"], errors='coerce').sum()
@@ -901,7 +904,7 @@ with tab2:
             st.metric("🎯 Total Setoran Konsumen", f"Rp {grand_total_konsumen:,.0f}")
 
         st.markdown("---")
-        st.markdown(f"### 📦 Kondisi Sisa Stock Akhir Terakhir per Merk Rokok ({selected_filter_team})")
+        st.markdown(f"### 📦 Kondisi Sisa Stock Akhir Terakhir per Merk Rokok")
         
         # Menggunakan get_active_remaining_stocks() agar otomatis terhapus/berkurang jika sudah diselesaikan ke gudang
         df_active_tab2 = get_active_remaining_stocks()
@@ -917,19 +920,24 @@ with tab2:
 
         st.markdown("---")
         st.markdown("### 📋 Rekapitulasi Berdasarkan Nomor Bon")
-        if "No Bon" in st.session_state.df_transaksi.columns:
-            df_rekap_bon = st.session_state.df_transaksi.groupby("No Bon").agg({
+        if "No Bon" in df_filtered.columns and not df_filtered.empty:
+            df_rekap_bon = df_filtered.groupby("No Bon").agg({
                 "Team/Promotor": "first", "Tanggal": "first", "Terjual": "sum",
                 "Rokok Lain-lain": "sum", "Total Setoran Kanvas": "sum", "Total Setoran Konsumen": "sum"
             }).reset_index()
             st.dataframe(df_rekap_bon, use_container_width=True)
+        else:
+            st.info("Tidak ada data rekapitulasi bon untuk filter terpilih.")
 
         st.markdown("---")
         st.markdown("### 👥 Rekapitulasi Berdasarkan Team / Promotor")
-        df_rekap_team = st.session_state.df_transaksi.groupby("Team/Promotor").agg({
-            "Terjual": "sum", "Rokok Lain-lain": "sum", "Total Setoran Kanvas": "sum", "Total Setoran Konsumen": "sum"
-        }).reset_index()
-        st.dataframe(df_rekap_team, use_container_width=True)
+        if not df_filtered.empty:
+            df_rekap_team = df_filtered.groupby("Team/Promotor").agg({
+                "Terjual": "sum", "Rokok Lain-lain": "sum", "Total Setoran Kanvas": "sum", "Total Setoran Konsumen": "sum"
+            }).reset_index()
+            st.dataframe(df_rekap_team, use_container_width=True)
+        else:
+            st.info("Tidak ada data rekapitulasi team untuk filter terpilih.")
 
         st.divider()
         st.markdown("### 🗑️ Menu Hapus Data")
