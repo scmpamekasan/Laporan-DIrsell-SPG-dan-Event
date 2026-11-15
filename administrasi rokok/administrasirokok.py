@@ -159,8 +159,8 @@ with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
                         item["harga_konsumen"] = int(up_konsumen)
                         break
                 
-                # Update langsung nilai widget harga di form Input Transaksi agar sinkron seketika
-                harga_widget_key = f"harga_{st.session_state.trx_form_reset_id}_{selected_edit_merk}"
+                # Update langsung nilai widget harga konsumen di form Input Transaksi agar sinkron seketika
+                harga_widget_key = f"harga_konsumen_{st.session_state.trx_form_reset_id}_{selected_edit_merk}"
                 if harga_widget_key in st.session_state:
                     st.session_state[harga_widget_key] = int(up_konsumen)
                 
@@ -503,22 +503,24 @@ with tab1:
                 )
 
         st.markdown("---")
-        st.markdown("**Merk Rokok** | **Harga Jual Konsumen (dalam Rupiah)**")
+        st.markdown("**Merk Rokok** | **Harga Jual Konsumen (Otomatis dari Master)**")
         harga_inputs = {}
         for merk in active_merks:
             master_item_info = dict_master_detail.get(merk, {})
-            def_harga = int(master_item_info.get("harga_konsumen", 0))
-            h_kanvas_info = int(master_item_info.get("harga_kanvas", 0))
+            def_konsumen = int(master_item_info.get("harga_konsumen", 0))
+            
+            widget_key = f"harga_konsumen_{st.session_state.trx_form_reset_id}_{merk}"
+            if widget_key not in st.session_state:
+                st.session_state[widget_key] = def_konsumen
             
             c_m, c_v = st.columns([3, 2])
             with c_m:
-                st.markdown(f"{merk} *(Kanvas: Rp {h_kanvas_info:,})*")
+                st.markdown(f"🚬 **{merk}**")
             with c_v:
                 harga_inputs[merk] = st.number_input(
-                    f"Harga_{merk}", 
+                    f"HargaKonsumen_{merk}", 
                     min_value=0, 
-                    value=def_harga, 
-                    key=f"harga_{st.session_state.trx_form_reset_id}_{merk}",
+                    key=widget_key,
                     label_visibility="collapsed"
                 )
 
@@ -556,9 +558,12 @@ with tab1:
                     s_akhir = akhir_inputs[merk]
                     s_gantung = gantung_inputs[merk]
                     s_lain = lain_inputs[merk]  
-                    h_konsumen = harga_inputs[merk]
                     
-                    h_kanvas = int(dict_master_detail.get(merk, {}).get("harga_kanvas", 10000))
+                    # Harga Konsumen diambil dari kolom entry form
+                    h_konsumen = int(harga_inputs[merk])
+                    # Harga Kanvas diambil otomatis dari master data
+                    h_kanvas = int(dict_master_detail.get(merk, {}).get("harga_kanvas", 0))
+                    
                     terjual = max(0, (s_awal - s_akhir) - s_gantung - s_lain)
                     tot_kanvas = terjual * h_kanvas
                     tot_konsumen = terjual * h_konsumen
