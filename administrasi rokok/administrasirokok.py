@@ -115,7 +115,7 @@ def load_from_google_sheets():
                 st.session_state.df_pre_entry_bon = df_pre_loaded
             else:
                 st.session_state.df_pre_entry_bon = pd.DataFrame(columns=[
-                    "ID Draft", "Tanggal", "Rencana Penyelesaian", "Team/Promotor", "Merk Rokok", 
+                    "ID Draftt", "Tanggal", "Rencana Penyelesaian", "Team/Promotor", "Merk Rokok", 
                     "Ball", "Slop", "Bungkus", "Total Setara Bungkus", "Keperluan", "Keterangan"
                 ])
 
@@ -193,7 +193,7 @@ if "master_rokok_data" not in st.session_state:
 
 if "df_pre_entry_bon" not in st.session_state:
     st.session_state.df_pre_entry_bon = pd.DataFrame(columns=[
-        "ID Draft", "Tanggal", "Rencana Penyelesaian", "Team/Promotor", "Merk Rokok", 
+        "ID Draftt", "Tanggal", "Rencana Penyelesaian", "Team/Promotor", "Merk Rokok", 
         "Ball", "Slop", "Bungkus", "Total Setara Bungkus", "Keperluan", "Keterangan"
     ])
 elif "Rencana Penyelesaian" not in st.session_state.df_pre_entry_bon.columns:
@@ -305,27 +305,27 @@ st.sidebar.info(f"📅 Periode: **{current_week}**")
 
 # --- MENU UTAMA ---
 tab_pre_entry, tab_stock, tab1, tab2, tab_lap_team, tab3, tab_gudang, tab4 = st.tabs([
-    "📥 Pre Entry Draf Bon",
+    "📥 Pre Entry Draft Bon",
     "📦 Stock Rokok", 
     "📝 Input Transaksi", 
-    "📊 Tabel Rekap & Edit", 
+    "📊 Tabel Rekap Penjualan", 
     "👥 Laporan Per Team",
     "📋 Management Bon", 
     "📥 Penyelesaian ke Gudang",
     "⚙️ Backup & Reset Data"
 ])
 
-# ================= TAB 0: PRE ENTRY DRAF BON =================
+# ================= TAB 0: PRE ENTRY Draft BON =================
 with tab_pre_entry:
-    st.subheader("📥 Pre Entry Draf Bon Rokok")
-    st.markdown("Buat draf permintaan bon terlebih dahulu sebelum mendapatkan No Bon resmi dari Admin. Sertakan tanggal rencana penyelesaian bon.")
+    st.subheader("📥 Pre Entry Draft Bon Rokok")
+    st.markdown("Buat Draft permintaan bon terlebih dahulu sebelum mendapatkan No Bon resmi dari Admin. Sertakan tanggal rencana penyelesaian bon.")
 
     if "pre_form_reset_id" not in st.session_state:
         st.session_state.pre_form_reset_id = 0
 
-    with st.expander("➕ Buat Draf Bon Baru (Multi-Merk)", expanded=True):
+    with st.expander("➕ Buat Draft Bon Baru (Multi-Merk)", expanded=True):
         with st.form(f"form_pre_entry_{st.session_state.pre_form_reset_id}", clear_on_submit=True):
-            st.markdown("#### Informasi Draf Bon")
+            st.markdown("#### Informasi Draft Bon")
             
             c1, c2, c3 = st.columns(3)
             with c1:
@@ -337,10 +337,10 @@ with tab_pre_entry:
                     "Dirsell SPG", "Event", "Pembinaan Kantor", "Sampling / Promosi", "Lainnya"
                 ], key="pre_kep")
 
-            keterangan_pre_umum = st.text_input("Keterangan Draf (Opsional)", placeholder="Contoh: Permintaan stok untuk Event Weekend")
+            keterangan_pre_umum = st.text_input("Keterangan Draft (Opsional)", placeholder="Contoh: Permintaan stok untuk Event Weekend")
 
             st.markdown("---")
-            st.markdown("#### Daftar Merk Rokok dalam Draf Ini")
+            st.markdown("#### Daftar Merk Rokok dalam Draft Ini")
             
             if "jumlah_baris_pre" not in st.session_state:
                 st.session_state.jumlah_baris_pre = 5
@@ -366,20 +366,20 @@ with tab_pre_entry:
             with col_pbtn1:
                 tambah_baris_pre_btn = st.form_submit_button("➕ Tambah 3 Baris")
             with col_pbtn2:
-                simpan_draf_btn = st.form_submit_button("💾 Simpan Sebagai Draf Pre Entry", type="primary")
+                simpan_Draft_btn = st.form_submit_button("💾 Simpan Sebagai Draft Pre Entry", type="primary")
 
             if tambah_baris_pre_btn:
                 st.session_state.jumlah_baris_pre += 3
                 st.rerun()
 
-            if simpan_draf_btn:
+            if simpan_Draft_btn:
                 if not team_pre:
                     st.error("Nama Pengebon Wajib Diisi!")
                 elif not item_pre_list:
                     st.error("Pilih minimal 1 merk rokok!")
                 else:
-                    draft_group_id = f"DRAF-{str(uuid.uuid4())[:6].upper()}"
-                    sukses_draft = 0
+                    Draftt_group_id = f"Draft-{str(uuid.uuid4())[:6].upper()}"
+                    sukses_Draftt = 0
                     for item in item_pre_list:
                         merk = item["merk"]
                         b = item["ball"]
@@ -392,9 +392,9 @@ with tab_pre_entry:
                         total_setara = (b * slop_per_ball * bungkus_per_slop) + (s * bungkus_per_slop) + bu
                         
                         if total_setara > 0:
-                            ket_final = keterangan_pre_umum if keterangan_pre_umum else f"Draf Permintaan"
-                            new_draft_row = {
-                                "ID Draft": draft_group_id,
+                            ket_final = keterangan_pre_umum if keterangan_pre_umum else f"Draft Permintaan"
+                            new_Draftt_row = {
+                                "ID Draftt": Draftt_group_id,
                                 "Tanggal": str(selected_date),
                                 "Rencana Penyelesaian": str(rencana_penyelesaian_date),
                                 "Team/Promotor": team_pre,
@@ -407,41 +407,41 @@ with tab_pre_entry:
                                 "Keterangan": ket_final
                             }
                             st.session_state.df_pre_entry_bon = pd.concat([
-                                st.session_state.df_pre_entry_bon, pd.DataFrame([new_draft_row])
+                                st.session_state.df_pre_entry_bon, pd.DataFrame([new_Draftt_row])
                             ], ignore_index=True)
-                            sukses_draft += 1
+                            sukses_Draftt += 1
 
                     st.session_state.jumlah_baris_pre = 5
                     st.session_state.pre_form_reset_id += 1
-                    st.success(f"✅ Berhasil menyimpan Draf dengan ID Group **{draft_group_id}** (Rencana Penyelesaian: {rencana_penyelesaian_date})!")
+                    st.success(f"✅ Berhasil menyimpan Draft dengan ID Group **{Draftt_group_id}** (Rencana Penyelesaian: {rencana_penyelesaian_date})!")
                     st.rerun()
 
     st.divider()
-    st.markdown("### 📋 Daftar Draf Pre Entry Bon (Belum Disubmit)")
+    st.markdown("### 📋 Daftar Draft Pre Entry Bon (Belum Disubmit)")
 
     if not st.session_state.df_pre_entry_bon.empty:
         st.dataframe(st.session_state.df_pre_entry_bon, use_container_width=True)
 
-        st.markdown("#### 🚀 Submit Draf Menjadi Bon Resmi (Masukkan No Bon dari Admin)")
-        unique_draft_ids = st.session_state.df_pre_entry_bon["ID Draft"].unique().tolist()
+        st.markdown("#### 🚀 Submit Draft Menjadi Bon Resmi (Masukkan No Bon dari Admin)")
+        unique_Draftt_ids = st.session_state.df_pre_entry_bon["ID Draftt"].unique().tolist()
         
         col_sub1, col_sub2, col_sub3 = st.columns([2, 2, 1])
         with col_sub1:
-            selected_draft_to_submit = st.selectbox("Pilih ID Draf yang ingin disubmit", options=["-"] + unique_draft_ids)
+            selected_Draftt_to_submit = st.selectbox("Pilih ID Draft yang ingin disubmit", options=["-"] + unique_Draftt_ids)
         with col_sub2:
             input_no_bon_asli = st.text_input("Masukkan No Bon Resmi dari Admin", placeholder="Contoh: BON-OFFICIAL-01")
         with col_sub3:
             st.markdown("<br>", unsafe_allow_html=True)
-            btn_submit_draft = st.button("📤 Submit Bon", type="primary")
+            btn_submit_Draftt = st.button("📤 Submit Bon", type="primary")
 
-        if btn_submit_draft:
-            if selected_draft_to_submit == "-":
-                st.error("Pilih ID Draf terlebih dahulu!")
+        if btn_submit_Draftt:
+            if selected_Draftt_to_submit == "-":
+                st.error("Pilih ID Draft terlebih dahulu!")
             elif not input_no_bon_asli.strip():
                 st.error("No Bon Resmi dari Admin wajib diisi!")
             else:
                 rows_to_move = st.session_state.df_pre_entry_bon[
-                    st.session_state.df_pre_entry_bon["ID Draft"] == selected_draft_to_submit
+                    st.session_state.df_pre_entry_bon["ID Draftt"] == selected_Draftt_to_submit
                 ]
                 
                 for _, r in rows_to_move.iterrows():
@@ -462,21 +462,21 @@ with tab_pre_entry:
                     ], ignore_index=True)
 
                 st.session_state.df_pre_entry_bon = st.session_state.df_pre_entry_bon[
-                    st.session_state.df_pre_entry_bon["ID Draft"] != selected_draft_to_submit
+                    st.session_state.df_pre_entry_bon["ID Draftt"] != selected_Draftt_to_submit
                 ]
 
-                st.success(f"🎉 Draf {selected_draft_to_submit} berhasil disubmit dengan No Bon Resmi **{input_no_bon_asli.strip()}**!")
+                st.success(f"🎉 Draft {selected_Draftt_to_submit} berhasil disubmit dengan No Bon Resmi **{input_no_bon_asli.strip()}**!")
                 st.rerun()
 
-        if st.button("🗑️ Hapus Draf Terpilih"):
-            if selected_draft_to_submit != "-":
+        if st.button("🗑️ Hapus Draft Terpilih"):
+            if selected_Draftt_to_submit != "-":
                 st.session_state.df_pre_entry_bon = st.session_state.df_pre_entry_bon[
-                    st.session_state.df_pre_entry_bon["ID Draft"] != selected_draft_to_submit
+                    st.session_state.df_pre_entry_bon["ID Draftt"] != selected_Draftt_to_submit
                 ]
-                st.success(f"Draf {selected_draft_to_submit} berhasil dihapus.")
+                st.success(f"Draft {selected_Draftt_to_submit} berhasil dihapus.")
                 st.rerun()
     else:
-        st.info("Belum ada draf Pre Entry Bon yang dibuat.")
+        st.info("Belum ada Draft Pre Entry Bon yang dibuat.")
 
 # ================= TAB 1: STOCK ROKOK =================
 with tab_stock:
@@ -914,10 +914,10 @@ with tab3:
     st.subheader("📋 Management & Rekap Data Bon Rokok")
     
     # ----------------------------------------------------
-    # BAGIAN 1: LAPORAN DRAF PRE ENTRY BON
+    # BAGIAN 1: LAPORAN Draft PRE ENTRY BON
     # ----------------------------------------------------
-    st.markdown("### 📥 Rekapitulasi Draf Pre Entry Bon (Belum Disubmit)")
-    st.markdown("Filter, unduh, pratinjau cetak, dan cetak rekapitulasi draf bon berdasarkan tanggal rencana penyelesaian.")
+    st.markdown("### 📥 Rekapitulasi Draft Pre Entry Bon (Belum Disubmit)")
+    st.markdown("Filter, unduh, pratinjau cetak, dan cetak rekapitulasi Draft bon berdasarkan tanggal rencana penyelesaian.")
 
     if not st.session_state.df_pre_entry_bon.empty:
         list_rencana_tgl = ["Semua Tanggal"] + sorted(st.session_state.df_pre_entry_bon["Rencana Penyelesaian"].dropna().unique().tolist())
@@ -961,14 +961,14 @@ with tab3:
             
             output_pre = io.BytesIO()
             with pd.ExcelWriter(output_pre, engine='openpyxl') as writer:
-                df_pre_display.to_excel(writer, index=False, sheet_name='Rekap Draf Pre-Entry')
+                df_pre_display.to_excel(writer, index=False, sheet_name='Rekap Draft Pre-Entry')
             excel_pre_data = output_pre.getvalue()
             
             with col_act1:
                 st.download_button(
-                    label="📥 Download Excel Draf",
+                    label="📥 Download Excel Draft",
                     data=excel_pre_data,
-                    file_name=f"Rekap_Draf_PreEntry_{selected_filter_rencana}.xlsx",
+                    file_name=f"Rekap_Draft_PreEntry_{selected_filter_rencana}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     type="primary"
                 )
@@ -977,7 +977,7 @@ with tab3:
             print_html = f"""
             <html>
                 <head>
-                    <title>Cetak Rekap Draf Pre Entry Bon</title>
+                    <title>Cetak Rekap Draft Pre Entry Bon</title>
                     <style>
                         body {{ font-family: Arial, sans-serif; padding: 20px; }}
                         h2 {{ text-align: center; }}
@@ -987,7 +987,7 @@ with tab3:
                     </style>
                 </head>
                 <body>
-                    <h2>Rekapitulasi Draf Pre Entry Bon</h2>
+                    <h2>Rekapitulasi Draft Pre Entry Bon</h2>
                     <p><b>Tanggal Rencana Penyelesaian:</b> {selected_filter_rencana}</p>
                     {html_table}
                     <script>
@@ -998,23 +998,23 @@ with tab3:
             """
 
             with col_act2:
-                if st.button("👁️ Preview Print Draf"):
+                if st.button("👁️ Preview Print Draft"):
                     st.components.v1.html(print_html, height=400, scrolling=True)
 
             with col_act3:
                 st.download_button(
-                    label="🖨️ Print Rekap Draf",
+                    label="🖨️ Print Rekap Draft",
                     data=print_html,
-                    file_name=f"Print_Rekap_Draf_{selected_filter_rencana}.html",
+                    file_name=f"Print_Rekap_Draft_{selected_filter_rencana}.html",
                     mime="text/html"
                 )
 
-            with st.expander("🔎 Lihat Detail Rincian Baris Draf Pre Entry"):
+            with st.expander("🔎 Lihat Detail Rincian Baris Draft Pre Entry"):
                 st.dataframe(df_pre_filtered, use_container_width=True)
         else:
-            st.warning("Tidak ada draf bon untuk tanggal rencana penyelesaian tersebut.")
+            st.warning("Tidak ada Draft bon untuk tanggal rencana penyelesaian tersebut.")
     else:
-        st.info("Belum ada Draf Pre Entry Bon yang aktif saat ini.")
+        st.info("Belum ada Draft Pre Entry Bon yang aktif saat ini.")
 
     st.divider()
 
