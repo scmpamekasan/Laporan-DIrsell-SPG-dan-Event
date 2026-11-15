@@ -311,6 +311,24 @@ with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
 
     st.markdown("---")
     st.markdown("**Edit Harga Cepat**")
+    
+    # --- CSS KUSTOM KHUSUS TOMBOL "Simpan Perubahan Harga" ---
+    st.markdown("""
+        <style>
+        /* Menargetkan tombol di sidebar yang memiliki teks "Simpan Perubahan Harga" */
+        [data-testid="stSidebar"] button:has(p:contains("Simpan Perubahan Harga")) {
+            background-color: #FFD700 !important;
+            color: #000000 !important;
+            border-color: #DAA520 !important;
+            font-weight: bold;
+        }
+        [data-testid="stSidebar"] button:has(p:contains("Simpan Perubahan Harga")):hover {
+            background-color: #E6C200 !important;
+            color: #000000 !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     selected_edit_merk = st.selectbox("Pilih Merk untuk Diedit", options=list_merk, key="sidebar_edit_merk_select")
     
     if selected_edit_merk:
