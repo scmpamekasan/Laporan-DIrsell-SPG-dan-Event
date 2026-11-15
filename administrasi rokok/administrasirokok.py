@@ -34,32 +34,111 @@ def backup_to_google_sheets():
         except gspread.SpreadsheetNotFound:
             sh = client.create(spreadsheet_name)
 
-        # 1. Backup Data Transaksi
+        # 1. Backup Data Transaksi (Overwrite / Timpa agar tidak double)
+        try:
+            worksheet_trx = sh.worksheet("Data_Transaksi")
+        except gspread.WorksheetNotFound:
+            worksheet_trx = sh.add_worksheet(title="Data_Transaksi", rows="1000", cols="20")
+        
+        worksheet_trx.clear()
         if not st.session_state.df_transaksi.empty:
-            try:
-                worksheet_trx = sh.worksheet("Data_Transaksi")
-            except gspread.WorksheetNotFound:
-                worksheet_trx = sh.add_worksheet(title="Data_Transaksi", rows="1000", cols="20")
-            
-            worksheet_trx.clear()
             data_trx_to_upload = [st.session_state.df_transaksi.columns.tolist()] + st.session_state.df_transaksi.astype(str).values.tolist()
             worksheet_trx.update(data_trx_to_upload)
 
-        # 2. Backup Data Bon
+        # 2. Backup Data Bon Resmi (Overwrite / Timpa agar tidak double)
+        try:
+            worksheet_bon = sh.worksheet("Data_Bon")
+        except gspread.WorksheetNotFound:
+            worksheet_bon = sh.add_worksheet(title="Data_Bon", rows="1000", cols="20")
+        
+        worksheet_bon.clear()
         if not st.session_state.df_bon.empty:
-            try:
-                worksheet_bon = sh.worksheet("Data_Bon")
-            except gspread.WorksheetNotFound:
-                worksheet_bon = sh.add_worksheet(title="Data_Bon", rows="1000", cols="20")
-            
-            worksheet_bon.clear()
             data_bon_to_upload = [st.session_state.df_bon.columns.tolist()] + st.session_state.df_bon.astype(str).values.tolist()
             worksheet_bon.update(data_bon_to_upload)
+
+        # 3. Backup Data Draf Pre-Entry Bon (Overwrite / Timpa agar tidak double)
+        try:
+            worksheet_pre = sh.worksheet("Data_Pre_Entry_Bon")
+        except gspread.WorksheetNotFound:
+            worksheet_pre = sh.add_worksheet(title="Data_Pre_Entry_Bon", rows="1000", cols="20")
+        
+        worksheet_pre.clear()
+        if not st.session_state.df_pre_entry_bon.empty:
+            data_pre_to_upload = [st.session_state.df_pre_entry_bon.columns.tolist()] + st.session_state.df_pre_entry_bon.astype(str).values.tolist()
+            worksheet_pre.update(data_pre_to_upload)
 
         return True, sh.url
     except Exception as e:
         st.error(f"Gagal melakukan backup: {e}")
         return False, None
+
+
+def load_from_google_sheets():
+    try:
+        if "gcp_service_account" not in st.secrets:
+            return False, "Kredensial Google Service Account belum diset di Streamlit Secrets!"
+
+        scope = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
+        client = gspread.authorize(creds)
+
+        spreadsheet_name = "Backup_Data_Administrasi_Rokok"
+        try:
+            sh = client.open(spreadsheet_name)
+        except gspread.SpreadsheetNotFound:
+            return False, "File Google Sheets backup belum ditemukan."
+
+        # 1. Load Data Transaksi
+        try:
+            worksheet_trx = sh.worksheet("Data_Transaksi")
+            data_trx = worksheet_trx.get_all_records()
+            if data_trx:
+                st.session_state.df_transaksi = pd.DataFrame(data_trx)
+            else:
+                st.session_state.df_transaksi = pd.DataFrame(columns=[
+                    "ID", "No Bon", "Tanggal", "Minggu", "Team/Promotor", "Merk Rokok", 
+                    "Stock Awal", "Stock Akhir", "Belum Selesai", "Rokok Lain-lain", 
+                    "Terjual", "Harga Kanvas", "Harga Konsumen", "Total Setoran Kanvas", "Total Setoran Konsumen"
+                ])
+        except gspread.WorksheetNotFound:
+            pass
+
+        # 2. Load Data Bon Resmi
+        try:
+            worksheet_bon = sh.worksheet("Data_Bon")
+            data_bon = worksheet_bon.get_all_records()
+            if data_bon:
+                st.session_state.df_bon = pd.DataFrame(data_bon)
+            else:
+                st.session_state.df_bon = pd.DataFrame(columns=[
+                    "ID", "Tanggal", "Team/Promotor", "Merk Rokok", "Ball", "Slop", "Bungkus", 
+                    "Total Setara Bungkus", "Keperluan", "Keterangan"
+                ])
+        except gspread.WorksheetNotFound:
+            pass
+
+        # 3. Load Data Draf Pre-Entry Bon
+        try:
+            worksheet_pre = sh.worksheet("Data_Pre_Entry_Bon")
+            data_pre = worksheet_pre.get_all_records()
+            if data_pre:
+                st.session_state.df_pre_entry_bon = pd.DataFrame(data_pre)
+            else:
+                st.session_state.df_pre_entry_bon = pd.DataFrame(columns=[
+                    "ID Draft", "Tanggal", "Rencana Penyelesaian", "Team/Promotor", "Merk Rokok", 
+                    "Ball", "Slop", "Bungkus", "Total Setara Bungkus", "Keperluan", "Keterangan"
+                ])
+        except gspread.WorksheetNotFound:
+            pass
+
+        return True, "Data berhasil ditarik dan dipulihkan dari Google Sheets!"
+    except Exception as e:
+        return False, f"Gagal memuat data: {e}"
 
 
 # Konfigurasi Awal
@@ -906,10 +985,8 @@ with tab3:
             df_pre_display = pd.DataFrame(pre_konversi_list)
             st.dataframe(df_pre_display, use_container_width=True)
 
-            # --- FITUR DOWNLOAD EXCEL, PREVIEW PRINT, & PRINT ---
             col_act1, col_act2, col_act3 = st.columns(3)
             
-            # 1. Download Excel
             output_pre = io.BytesIO()
             with pd.ExcelWriter(output_pre, engine='openpyxl') as writer:
                 df_pre_display.to_excel(writer, index=False, sheet_name='Rekap Draf Pre-Entry')
@@ -924,7 +1001,6 @@ with tab3:
                     type="primary"
                 )
 
-            # 2. Preview Print & 3. Print (Menggunakan HTML/JS Window Print)
             html_table = df_pre_display.to_html(index=False, classes='table table-striped')
             print_html = f"""
             <html>
@@ -954,7 +1030,6 @@ with tab3:
                     st.components.v1.html(print_html, height=400, scrolling=True)
 
             with col_act3:
-                # Tombol Print Langsung via Web Browser
                 st.download_button(
                     label="🖨️ Print Rekap Draf",
                     data=print_html,
@@ -1079,19 +1154,33 @@ with tab3:
 
 # ================= TAB 6: RESET, HAPUS & BACKUP (ADMIN ONLY) =================
 with tab4:
-    st.subheader("⚙️ Zona Administratif: Backup & Reset Data")
+    st.subheader("⚙️ Zona Administratif: Backup, Restore & Reset Data")
     if role != "Admin":
         st.warning("⚠️ Menu ini dikunci dan hanya dapat diakses oleh **Admin**.")
     else:
-        st.markdown("### ☁️ Backup Otomatis ke Google Sheets")
-        st.markdown("Tekan tombol di bawah ini untuk mencadangkan seluruh data transaksi dan bon terbaru ke Google Sheets secara instan dengan satu klik.")
+        col_bk1, col_bk2 = st.columns(2)
+        
+        with col_bk1:
+            st.markdown("### ☁️ Backup ke Google Sheets")
+            st.markdown("Menimpa (*overwrite*) data terbaru ke Google Sheets agar aman dari risiko *double data* saat di-load ulang.")
+            if st.button("🚀 Backup Sekarang (Overwrite)", type="primary"):
+                with st.spinner("Sedang memproses backup data..."):
+                    success, sheet_url = backup_to_google_sheets()
+                    if success:
+                        st.success("✅ Berhasil membackup data ke Google Sheets!")
+                        st.markdown(f"🔗 **[Buka Google Sheets]({sheet_url})**")
 
-        if st.button("🚀 Satu Klik Backup ke Google Sheets", type="primary"):
-            with st.spinner("Sedang memproses backup data ke Google Sheets..."):
-                success, sheet_url = backup_to_google_sheets()
-                if success:
-                    st.success("✅ Berhasil melakukan backup seluruh data ke Google Sheets!")
-                    st.markdown(f"🔗 **[Buka Google Sheets Hasil Backup]({sheet_url})**")
+        with col_bk2:
+            st.markdown("### 📥 Load dari Google Sheets")
+            st.markdown("Tarik data dari Google Sheets jika halaman aplikasi ter-refresh atau data memori kosong.")
+            if st.button("🔄 Tarik Data dari Google Sheets", type="secondary"):
+                with st.spinner("Sedang memuat data..."):
+                    success, msg = load_from_google_sheets()
+                    if success:
+                        st.success("✅ " + msg)
+                        st.rerun()
+                    else:
+                        st.error(msg)
 
         st.divider()
         st.markdown("### 🗑️ Zona Bahaya: Reset & Hapus Keseluruhan")
