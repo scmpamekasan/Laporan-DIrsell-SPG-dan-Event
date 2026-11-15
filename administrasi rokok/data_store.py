@@ -6,9 +6,12 @@ import os
 def load_master_harga():
     """
     Memuat data master harga dan satuan dari file 'master_harga_rokok.json'.
-    Jika file belum ada, akan menggunakan data default dan membuat file JSON tersebut secara otomatis.
+    Menggunakan path absolut agar file pasti terbaca di folder yang sama.
     """
-    file_path = "master_harga_rokok.json"
+    # Menentukan direktori absolut tempat file data_store.py berada
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(base_dir, "master_harga_rokok.json")
+    
     default_data = [
         {"merk": "Black Matcha K12", "harga_kanvas": 15000, "harga_konsumen": 18000, "ball": 1, "slop": 20, "bungkus": 200},
         {"merk": "D.Super 12", "harga_kanvas": 21000, "harga_konsumen": 25000, "ball": 1, "slop": 20, "bungkus": 200},
@@ -25,10 +28,10 @@ def load_master_harga():
                 data = json.load(f)
                 if isinstance(data, list) and len(data) > 0:
                     return data
-        except Exception:
-            pass
+        except Exception as e:
+            st.error(f"⚠️ Gagal membaca file `master_harga_rokok.json`: {e}")
             
-    # Jika file belum ada atau kosong, buat file default-nya
+    # Jika file belum ada, baru buat file default-nya
     try:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(default_data, f, indent=4)
@@ -41,12 +44,14 @@ def save_master_harga(master_data):
     """
     Menyimpan perubahan master harga ke file 'master_harga_rokok.json'.
     """
-    file_path = "master_harga_rokok.json"
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(base_dir, "master_harga_rokok.json")
     try:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(master_data, f, indent=4)
         return True
-    except Exception:
+    except Exception as e:
+        st.error(f"⚠️ Gagal menyimpan file JSON: {e}")
         return False
 
 def init_session_state():
