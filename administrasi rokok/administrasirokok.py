@@ -65,7 +65,12 @@ setup_page_config()
 apply_custom_styling()
 init_session_state()
 
-master_rokok = load_master_harga()
+# Inisialisasi Master Rokok ke session_state agar bisa diedit dinamis
+if "master_rokok_data" not in st.session_state:
+    st.session_state.master_rokok_data = load_master_harga()
+
+# Sinkronisasi list dan dictionary master dari session_state
+master_rokok = st.session_state.master_rokok_data
 list_merk = [item["merk"] for item in master_rokok]
 dict_master_detail = {item["merk"]: item for item in master_rokok}
 
@@ -76,12 +81,10 @@ st.markdown("Pencatatan Stock Rokok - Bon Rokok - Rokok Gantung/Belum Selesai - 
 
 # --- SIDEBAR: NAVIGASI & ROLE ---
 try:
-    # Membuat 3 kolom di dalam sidebar untuk memposisikan logo di tengah
     col1, col2, col3 = st.sidebar.columns([1, 2, 1])
     with col2:
         dir_path = os.path.dirname(os.path.abspath(__file__))
         logo_path = os.path.join(dir_path, "SCMlogo.png")
-        # Ukuran width diperbesar menjadi 120 (atau sesuaikan kebutuhan)
         st.image(logo_path, width=120)
 except Exception:
     col1, col2, col3 = st.sidebar.columns([1, 2, 1])
@@ -90,6 +93,58 @@ except Exception:
 
 st.sidebar.header("Menu")
 role = st.sidebar.selectbox("User Login", ["Promotor", "PIC Dirsell & Event", "Admin"])
+
+# --- MENU MASTER ROKOK DI SIDEBAR (KHUSUS ADMIN / UMUM) ---
+with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
+    st.markdown("### Update Harga & Merk")
+    
+    # 1. Tambah Merk Baru
+    with st.form("form_tambah_merk_baru"):
+        st.markdown("**Tambah Merk Baru**")
+        new_merk_name = st.text_input("Nama Merk Baru")
+        new_harga_kanvas = st.number_input("Harga Kanvas", min_value=0, value=10000, step=100)
+        new_harga_konsumen = st.number_input("Harga Konsumen", min_value=0, value=0, step=100)
+        new_ball = st.number_input("Ball", min_value=1, value=1)
+        new_slop = st.number_input("Slop per Ball", min_value=1, value=20)
+        new_bungkus = st.number_input("Bungkus per Ball", min_value=1, value=200)
+        
+        btn_add_merk = st.form_submit_button("➕ Tambah Merk")
+        if btn_add_merk:
+            if not new_merk_name.strip():
+                st.error("Nama merk tidak boleh kosong!")
+            elif new_merk_name in list_merk:
+                st.error("Merk tersebut sudah ada!")
+            else:
+                st.session_state.master_rokok_data.append({
+                    "merk": new_merk_name.strip(),
+                    "harga_kanvas": int(new_harga_kanvas),
+                    "harga_konsumen": int(new_harga_konsumen),
+                    "ball": int(new_ball),
+                    "slop": int(new_slop),
+                    "bungkus": int(new_bungkus)
+                })
+                st.success(f"Berhasil menambah merk {new_merk_name}!")
+                st.rerun()
+
+    st.markdown("---")
+    st.markdown("**Edit Harga Cepat**")
+    selected_edit_merk = st.selectbox("Pilih Merk untuk Diedit", options=list_merk)
+    
+    if selected_edit_merk:
+        current_detail = dict_master_detail[selected_edit_merk]
+        with st.form(f"form_edit_harga_{selected_edit_merk}"):
+            up_kanvas = st.number_input("Harga Kanvas Baru", min_value=0, value=int(current_detail.get("harga_kanvas", 0)), step=100)
+            up_konsumen = st.number_input("Harga Konsumen Baru", min_value=0, value=int(current_detail.get("harga_konsumen", 0)), step=100)
+            
+            btn_save_harga = st.form_submit_button("💾 Simpan Perubahan Harga")
+            if btn_save_harga:
+                for item in st.session_state.master_rokok_data:
+                    if item["merk"] == selected_edit_merk:
+                        item["harga_kanvas"] = int(up_kanvas)
+                        item["harga_konsumen"] = int(up_konsumen)
+                        break
+                st.success(f"Harga {selected_edit_merk} berhasil diperbarui!")
+                st.rerun()
 
 st.sidebar.divider()
 selected_date = st.sidebar.date_input("Pilih Tanggal Laporan", datetime.now())
@@ -231,7 +286,7 @@ with tab_stock:
     combined_data = []
     if not df_terakhir.empty:
         for _, row in df_terakhir.iterrows():
-            if row["Stcok Akhir"] > 0:
+            if row["Stock Akhir"] > 0:
                 combined_data.append({
                     "Team/Promotor": row["Team/Promotor"],
                     "Merk Rokok": row["Merk Rokok"],
@@ -359,8 +414,6 @@ with tab1:
     with st.form(f"form_transaksi_layout_{st.session_state.trx_form_reset_id}", clear_on_submit=True):
         
         st.markdown("**Pilih Merk Rokok & Stock Awal (Stock Kemarin + Bon Hari Ini)**")
-        
-        # 💡 INISIALISASI VARIABEL DI SINI AGAR TIDAK TERJADI NAMEERROR
         stock_awal_values = {}
         
         for merk in active_merks:
@@ -372,7 +425,7 @@ with tab1:
                     (df_sorted_trx["Merk Rokok"] == merk)
                 ]
                 if not match_terakhir.empty:
-                    stok_terakhir = int(match_terakhir.iloc[0]["Stok Akhir"])
+                    stok_terakhir = int(match_terakhir.iloc[0]["Stock Akhir"])
 
             bon_hari_ini = 0
             if current_active_bon and not st.session_state.df_bon.empty:
@@ -390,7 +443,7 @@ with tab1:
             with c_m:
                 st.markdown(f"🚬 **{merk}**")
             with c_v:
-                st.markdown(f"📦 **{val_awal:,} bks** *(Stok Terakhir: {stok_terakhir} + Bon: {bon_hari_ini})*")
+                st.markdown(f"📦 **{val_awal:,} bks** *(Stock Terakhir: {stok_terakhir} + Bon: {bon_hari_ini})*")
 
         st.markdown("---")
         st.markdown("**Rokok Belum Selesai / Gantung** | **Jumlah (dalam satuan bungkus)**")
@@ -428,7 +481,6 @@ with tab1:
         st.markdown("**Merk Rokok** | **Harga Jual Konsumen (dalam Rupiah)**")
         harga_inputs = {}
         for merk in active_merks:
-            # Mengambil nilai harga_konsumen dari master file JSON, default ke 0 jika kosong
             def_harga = dict_master_detail.get(merk, {}).get("harga_konsumen", 0)
             c_m, c_v = st.columns([3, 2])
             with c_m:
