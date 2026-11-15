@@ -259,7 +259,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-st.markdown("Pencatatan Stock Rokok - Bon Rokok - Rokok Gantung/Belum Selesai - Setoran Hasil Penjualan")
+
 
 # --- SIDEBAR: NAVIGASI & ROLE ---
 try:
