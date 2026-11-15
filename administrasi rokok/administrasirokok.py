@@ -76,7 +76,7 @@ def load_from_google_sheets():
                 df_trx_loaded = pd.DataFrame(trx_vals[1:], columns=trx_vals[0])
                 num_cols_trx = [
                     "Stock Awal", "Stock Akhir", "Belum Selesai", "Rokok Lain-lain",
-                    "Terjual", "Harga Kanvas", "Harga Konsumen", "Total Setoran Kanvas", "Total Setoran Konsumen"
+                    "Terjual", "Harga Kanvas", "Harga Konsumen", "Total Setoran Kanvas", "Total Setoran"
                 ]
                 for col in num_cols_trx:
                     if col in df_trx_loaded.columns:
@@ -86,7 +86,7 @@ def load_from_google_sheets():
                 st.session_state.df_transaksi = pd.DataFrame(columns=[
                     "ID", "No Bon", "Tanggal", "Minggu", "Team/Promotor", "Merk Rokok", 
                     "Stock Awal", "Stock Akhir", "Belum Selesai", "Rokok Lain-lain", 
-                    "Terjual", "Harga Kanvas", "Harga Konsumen", "Total Setoran Kanvas", "Total Setoran Konsumen"
+                    "Terjual", "Harga Kanvas", "Harga Konsumen", "Total Setoran Kanvas", "Total Setoran"
                 ])
 
             # 2. Load Bon Resmi
@@ -729,7 +729,7 @@ with tab1:
                         "Harga Kanvas": h_kanvas,
                         "Harga Konsumen": h_konsumen,
                         "Total Setoran Kanvas": tot_kanvas,
-                        "Total Setoran Konsumen": tot_konsumen
+                        "Total Setoran": tot_konsumen
                     }
                     st.session_state.df_transaksi = pd.concat([st.session_state.df_transaksi, pd.DataFrame([new_row])], ignore_index=True)
                     saved_count += 1
@@ -785,7 +785,7 @@ with tab2:
         st.markdown("---")
         st.markdown(f"### 💰 Grand Total & Ringkasan Keuangan (Filter Aktif)")
         
-        grand_total_konsumen = pd.to_numeric(df_filtered["Total Setoran Konsumen"], errors='coerce').sum()
+        grand_total_konsumen = pd.to_numeric(df_filtered["Total Setoran"], errors='coerce').sum()
         grand_total_kanvas = pd.to_numeric(df_filtered["Total Setoran Kanvas"], errors='coerce').sum()
         total_terjual = pd.to_numeric(df_filtered["Terjual"], errors='coerce').sum()
         total_lain = pd.to_numeric(df_filtered["Rokok Lain-lain"], errors='coerce').sum() if "Rokok Lain-lain" in df_filtered.columns else 0
@@ -798,13 +798,13 @@ with tab2:
         with col_gt3:
             st.metric("Grand Total Kanvas", f"Rp {grand_total_kanvas:,.0f}")
         with col_gt4:
-            st.metric("🎯 Total Setoran Konsumen", f"Rp {grand_total_konsumen:,.0f}")
+            st.metric("🎯 Total Setoran", f"Rp {grand_total_konsumen:,.0f}")
 
         # ==========================================
         # DETAIL ROKOK YANG LAKU DI BAWAH GRAND TOTAL
         # ==========================================
         st.markdown("")
-        st.markdown("#### 📦 Detail Rokok yang Laku, Grand Total Kanvas & Total Setoran Konsumen per Merk")
+        st.markdown("#### 📦 Detail Rokok yang Laku, Grand Total Kanvas & Total Setoran per Merk")
         
         if not df_filtered.empty:
             df_detail_laku = df_filtered.groupby("Merk Rokok").agg({
@@ -812,7 +812,7 @@ with tab2:
                 "Harga Kanvas": "first",
                 "Harga Konsumen": "first",
                 "Total Setoran Kanvas": "sum",
-                "Total Setoran Konsumen": "sum"
+                "Total Setoran": "sum"
             }).reset_index()
 
             # Ubah nama kolom agar lebih rapi dan informatif
@@ -822,7 +822,7 @@ with tab2:
                 "Harga Kanvas", 
                 "Harga Konsumen", 
                 "Grand Total Kanvas", 
-                "Total Setoran Konsumen"
+                "Total Setoran"
             ]
 
             st.dataframe(df_detail_laku, use_container_width=True)
@@ -833,7 +833,7 @@ with tab2:
         st.markdown("### 👥 Rekapitulasi Berdasarkan Team / Promotor")
         if not df_filtered.empty:
             df_rekap_team = df_filtered.groupby("Team/Promotor").agg({
-                "Terjual": "sum", "Rokok Lain-lain": "sum", "Total Setoran Kanvas": "sum", "Total Setoran Konsumen": "sum"
+                "Terjual": "sum", "Rokok Lain-lain": "sum", "Total Setoran Kanvas": "sum", "Total Setoran": "sum"
             }).reset_index()
             st.dataframe(df_rekap_team, use_container_width=True)
         else:
@@ -844,7 +844,7 @@ with tab2:
         if "No Bon" in df_filtered.columns and not df_filtered.empty:
             df_rekap_bon = df_filtered.groupby("No Bon").agg({
                 "Team/Promotor": "first", "Tanggal": "first", "Terjual": "sum",
-                "Rokok Lain-lain": "sum", "Total Setoran Kanvas": "sum", "Total Setoran Konsumen": "sum"
+                "Rokok Lain-lain": "sum", "Total Setoran Kanvas": "sum", "Total Setoran": "sum"
             }).reset_index()
             st.dataframe(df_rekap_bon, use_container_width=True)
         else:
@@ -908,7 +908,7 @@ with tab_lap_team:
 
         if not df_lap.empty:
             df_grouped_lap = df_lap.groupby("Merk Rokok").agg({
-                "Harga Kanvas": "first", "Terjual": "sum", "Total Setoran Kanvas": "sum", "Total Setoran Konsumen": "sum"
+                "Harga Kanvas": "first", "Terjual": "sum", "Total Setoran Kanvas": "sum", "Total Setoran": "sum"
             }).reset_index()
 
             df_grouped_lap.columns = [
