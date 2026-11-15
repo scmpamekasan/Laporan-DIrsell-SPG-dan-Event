@@ -305,6 +305,7 @@ with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
                     "slop": int(new_slop),
                     "bungkus": int(new_bungkus)
                 })
+                save_master_harga(st.session_state.master_rokok_data)
                 st.session_state.trx_form_reset_id += 1
                 st.success(f"Berhasil menambah merk {clean_name}!")
                 st.rerun()
@@ -312,23 +313,6 @@ with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
     st.markdown("---")
     st.markdown("**Edit Harga Cepat**")
     
-    # --- CSS KUSTOM KHUSUS TOMBOL "Simpan Perubahan Harga" ---
-    st.markdown("""
-        <style>
-        /* Menargetkan tombol di sidebar yang memiliki teks "Simpan Perubahan Harga" */
-        [data-testid="stSidebar"] button:has(p:contains("Simpan Perubahan Harga")) {
-            background-color: #FFD700 !important;
-            color: #000000 !important;
-            border-color: #DAA520 !important;
-            font-weight: bold;
-        }
-        [data-testid="stSidebar"] button:has(p:contains("Simpan Perubahan Harga")):hover {
-            background-color: #E6C200 !important;
-            color: #000000 !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
     selected_edit_merk = st.selectbox("Pilih Merk untuk Diedit", options=list_merk, key="sidebar_edit_merk_select")
     
     if selected_edit_merk:
@@ -338,7 +322,7 @@ with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
             up_kanvas = st.number_input("Harga Kanvas Baru", min_value=0, value=int(current_detail.get("harga_kanvas", 0)), step=100)
             up_konsumen = st.number_input("Harga Konsumen Baru", min_value=0, value=int(current_detail.get("harga_konsumen", 0)), step=100)
             
-            # --- CSS KUSTOM KHUSUS TOMBOL DI DALAM FORM INI ---
+            # --- CSS KUSTOM KHUSUS TOMBOL "Simpan Perubahan Harga" (Kuning Emas) ---
             st.markdown("""
                 <style>
                 div[data-testid="stSidebar"] form button[type="submit"] {
@@ -362,7 +346,7 @@ with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
                         item["harga_konsumen"] = int(up_konsumen)
                         break
                 
-                # Simpan ke file JSON
+                # Simpan permanen ke file JSON
                 save_master_harga(st.session_state.master_rokok_data)
                 
                 harga_widget_key = f"harga_konsumen_{st.session_state.trx_form_reset_id}_{selected_edit_merk}"
@@ -660,8 +644,22 @@ with tab1:
         st.markdown("**No Bon**")
         input_no_bon = st.text_input("No Bon Input", key=text_bon_key, label_visibility="collapsed")
     with col_h2:
-        st.markdown("**Nama**")
+        st.markdown("**Nama Promotor / Team**")
         input_nama = st.text_input("Nama Input", placeholder="Nama Promotor / Team", key=text_nama_key, label_visibility="collapsed")
+
+    # --- RECENT DATA / PREDICTED QUICK CHIPS FOR NAMES ---
+    recent_names = []
+    if not st.session_state.df_transaksi.empty and "Team/Promotor" in st.session_state.df_transaksi.columns:
+        recent_names = st.session_state.df_transaksi["Team/Promotor"].dropna().unique().tolist()[-5:]
+
+    if recent_names:
+        st.caption("🕒 **Riwayat Nama Terakhir (Klik untuk mengisi cepat):**")
+        cols_chip = st.columns(min(len(recent_names), 5))
+        for idx, name_item in enumerate(recent_names):
+            with cols_chip[idx]:
+                if st.button(f"👤 {name_item}", key=f"chip_name_{idx}", use_container_width=True):
+                    st.session_state[text_nama_key] = name_item
+                    st.rerun()
 
     st.markdown("---")
 
