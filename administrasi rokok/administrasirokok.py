@@ -359,10 +359,12 @@ with tab1:
     with st.form(f"form_transaksi_layout_{st.session_state.trx_form_reset_id}", clear_on_submit=True):
         
         st.markdown("**Pilih Merk Rokok & Stock Awal (Stock Kemarin + Bon Hari Ini)**")
-        stoCk_awal_values = {}
+        
+        # 💡 INISIALISASI VARIABEL DI SINI AGAR TIDAK TERJADI NAMEERROR
+        stock_awal_values = {}
         
         for merk in active_merks:
-            stock_terakhir = 0
+            stok_terakhir = 0
             if current_active_nama and not st.session_state.df_transaksi.empty:
                 df_sorted_trx = st.session_state.df_transaksi.sort_values(by="Tanggal", ascending=False)
                 match_terakhir = df_sorted_trx[
@@ -370,7 +372,7 @@ with tab1:
                     (df_sorted_trx["Merk Rokok"] == merk)
                 ]
                 if not match_terakhir.empty:
-                    stock_terakhir = int(match_terakhir.iloc[0]["Stock Akhir"])
+                    stok_terakhir = int(match_terakhir.iloc[0]["Stok Akhir"])
 
             bon_hari_ini = 0
             if current_active_bon and not st.session_state.df_bon.empty:
@@ -381,14 +383,14 @@ with tab1:
                 if not match_bon.empty:
                     bon_hari_ini = int(match_bon.iloc[0]["Total Setara Bungkus"])
 
-            val_awal = stock_terakhir + bon_hari_ini
+            val_awal = stok_terakhir + bon_hari_ini
             stock_awal_values[merk] = val_awal
 
             c_m, c_v = st.columns([3, 2])
             with c_m:
                 st.markdown(f"🚬 **{merk}**")
             with c_v:
-                st.markdown(f"📦 **{val_awal:,} bks** *(Stock Terakhir: {stock_terakhir} + Bon: {bon_hari_ini})*")
+                st.markdown(f"📦 **{val_awal:,} bks** *(Stok Terakhir: {stok_terakhir} + Bon: {bon_hari_ini})*")
 
         st.markdown("---")
         st.markdown("**Rokok Belum Selesai / Gantung** | **Jumlah (dalam satuan bungkus)**")
