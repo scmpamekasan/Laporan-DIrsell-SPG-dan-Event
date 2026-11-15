@@ -71,7 +71,16 @@ def load_from_google_sheets():
             # 1. Load Transaksi
             trx_vals = db_data.get("transaksi", [])
             if len(trx_vals) > 1:
-                st.session_state.df_transaksi = pd.DataFrame(trx_vals[1:], columns=trx_vals[0])
+                df_trx_loaded = pd.DataFrame(trx_vals[1:], columns=trx_vals[0])
+                # Konversi kolom numerik agar kalkulasi berjalan normal
+                num_cols_trx = [
+                    "Stock Awal", "Stock Akhir", "Belum Selesai", "Rokok Lain-lain",
+                    "Terjual", "Harga Kanvas", "Harga Konsumen", "Total Setoran Kanvas", "Total Setoran Konsumen"
+                ]
+                for col in num_cols_trx:
+                    if col in df_trx_loaded.columns:
+                        df_trx_loaded[col] = pd.to_numeric(df_trx_loaded[col], errors='coerce').fillna(0)
+                st.session_state.df_transaksi = df_trx_loaded
             else:
                 st.session_state.df_transaksi = pd.DataFrame(columns=[
                     "ID", "No Bon", "Tanggal", "Minggu", "Team/Promotor", "Merk Rokok", 
@@ -82,7 +91,12 @@ def load_from_google_sheets():
             # 2. Load Bon Resmi
             bon_vals = db_data.get("bon", [])
             if len(bon_vals) > 1:
-                st.session_state.df_bon = pd.DataFrame(bon_vals[1:], columns=bon_vals[0])
+                df_bon_loaded = pd.DataFrame(bon_vals[1:], columns=bon_vals[0])
+                num_cols_bon = ["Ball", "Slop", "Bungkus", "Total Setara Bungkus"]
+                for col in num_cols_bon:
+                    if col in df_bon_loaded.columns:
+                        df_bon_loaded[col] = pd.to_numeric(df_bon_loaded[col], errors='coerce').fillna(0)
+                st.session_state.df_bon = df_bon_loaded
             else:
                 st.session_state.df_bon = pd.DataFrame(columns=[
                     "ID", "Tanggal", "Team/Promotor", "Merk Rokok", "Ball", "Slop", "Bungkus", 
@@ -92,7 +106,12 @@ def load_from_google_sheets():
             # 3. Load Pre Entry Bon
             pre_vals = db_data.get("pre_entry", [])
             if len(pre_vals) > 1:
-                st.session_state.df_pre_entry_bon = pd.DataFrame(pre_vals[1:], columns=pre_vals[0])
+                df_pre_loaded = pd.DataFrame(pre_vals[1:], columns=pre_vals[0])
+                num_cols_pre = ["Ball", "Slop", "Bungkus", "Total Setara Bungkus"]
+                for col in num_cols_pre:
+                    if col in df_pre_loaded.columns:
+                        df_pre_loaded[col] = pd.to_numeric(df_pre_loaded[col], errors='coerce').fillna(0)
+                st.session_state.df_pre_entry_bon = df_pre_loaded
             else:
                 st.session_state.df_pre_entry_bon = pd.DataFrame(columns=[
                     "ID Draft", "Tanggal", "Rencana Penyelesaian", "Team/Promotor", "Merk Rokok", 
@@ -125,6 +144,19 @@ if "df_pre_entry_bon" not in st.session_state:
     ])
 elif "Rencana Penyelesaian" not in st.session_state.df_pre_entry_bon.columns:
     st.session_state.df_pre_entry_bon["Rencana Penyelesaian"] = str(datetime.now().date())
+
+# ==========================================
+# OTOMATIS LOAD DATA SAAT PERTAMA KALI DIBUKA
+# ==========================================
+if "is_data_loaded" not in st.session_state:
+    st.session_state.is_data_loaded = False
+
+if not st.session_state.is_data_loaded:
+    with st.spinner("⏳ Menghubungkan dan menarik data awal dari Google Sheet..."):
+        success, msg = load_from_google_sheets()
+        st.session_state.is_data_loaded = True
+        if success:
+            st.toast("✅ Data berhasil dimuat otomatis dari Google Sheet!", icon="🚀")
 
 master_rokok = st.session_state.master_rokok_data
 list_merk = [item["merk"] for item in master_rokok]
@@ -220,7 +252,7 @@ tab_pre_entry, tab_stock, tab1, tab2, tab_lap_team, tab3, tab4 = st.tabs([
     "📊 Tabel Rekap & Edit", 
     "👥 Laporan Per Team",
     "📋 Management Bon", 
-    "⚙️ Reset & Hapus Data"
+    "⚙️ Backup & Reset Data"
 ])
 
 # ================= TAB 0: PRE ENTRY DRAF BON =================
@@ -505,20 +537,20 @@ with tab_stock:
     if not df_terakhir.empty:
         for _, row in df_terakhir.iterrows():
             col_stock_akhir = "Stock Akhir" if "Stock Akhir" in row else "Stok Akhir"
-            if row[col_stock_akhir] > 0:
+            if float(row[col_stock_akhir]) > 0:
                 combined_data.append({
                     "Team/Promotor": row["Team/Promotor"],
                     "Merk Rokok": row["Merk Rokok"],
-                    "Stock Terakhir": row[col_stock_akhir],
+                    "Stock Terakhir": int(row[col_stock_akhir]),
                     "Bon Hari Ini (Bungkus)": 0,
-                    "Total Stock Awal": row[col_stock_akhir]
+                    "Total Stock Awal": int(row[col_stock_akhir])
                 })
 
     if not df_bon_hari_ini.empty:
         for _, bon_row in df_bon_hari_ini.iterrows():
             team = bon_row["Team/Promotor"]
             merk = bon_row["Merk Rokok"]
-            qty_bon = bon_row["Total Setara Bungkus"]
+            qty_bon = int(bon_row["Total Setara Bungkus"])
             
             found = False
             for item in combined_data:
@@ -637,7 +669,7 @@ with tab1:
                 ]
                 if not match_terakhir.empty:
                     col_sa = "Stock Akhir" if "Stock Akhir" in match_terakhir.columns else "Stok Akhir"
-                    stok_terakhir = int(match_terakhir.iloc[0][col_sa])
+                    stok_terakhir = int(float(match_terakhir.iloc[0][col_sa]))
 
             bon_hari_ini = 0
             if current_active_bon and not st.session_state.df_bon.empty:
@@ -646,7 +678,7 @@ with tab1:
                     (st.session_state.df_bon["Merk Rokok"] == merk)
                 ]
                 if not match_bon.empty:
-                    bon_hari_ini = int(match_bon.iloc[0]["Total Setara Bungkus"])
+                    bon_hari_ini = int(float(match_bon.iloc[0]["Total Setara Bungkus"]))
 
             val_awal = stok_terakhir + bon_hari_ini
             stock_awal_values[merk] = val_awal
@@ -786,10 +818,10 @@ with tab2:
         st.markdown("---")
         st.markdown(f"### 💰 Grand Total & Ringkasan Keuangan ({selected_filter_team})")
         
-        grand_total_konsumen = df_filtered["Total Setoran Konsumen"].sum()
-        grand_total_kanvas = df_filtered["Total Setoran Kanvas"].sum()
-        total_terjual = df_filtered["Terjual"].sum()
-        total_lain = df_filtered["Rokok Lain-lain"].sum() if "Rokok Lain-lain" in df_filtered.columns else 0
+        grand_total_konsumen = pd.to_numeric(df_filtered["Total Setoran Konsumen"], errors='coerce').sum()
+        grand_total_kanvas = pd.to_numeric(df_filtered["Total Setoran Kanvas"], errors='coerce').sum()
+        total_terjual = pd.to_numeric(df_filtered["Terjual"], errors='coerce').sum()
+        total_lain = pd.to_numeric(df_filtered["Rokok Lain-lain"], errors='coerce').sum() if "Rokok Lain-lain" in df_filtered.columns else 0
 
         col_gt1, col_gt2, col_gt3, col_gt4 = st.columns(4)
         with col_gt1:
@@ -928,7 +960,7 @@ with tab3:
             pre_konversi_list = []
             for _, row in df_pre_grouped_merk.iterrows():
                 m_name = row["Merk Rokok"]
-                tot_bks = row["Total Setara Bungkus"]
+                tot_bks = int(row["Total Setara Bungkus"])
                 
                 master_info = dict_master_detail.get(m_name, {"slop": 20, "bungkus": 200})
                 slop_per_ball = master_info.get("slop", 20)
@@ -1054,7 +1086,7 @@ with tab3:
             hasil_tabel_konversi = []
             for _, row in df_grouped_merk.iterrows():
                 merk_name = row["Merk Rokok"]
-                total_bks = row["Total Setara Bungkus"]
+                total_bks = int(row["Total Setara Bungkus"])
 
                 master_info = dict_master_detail.get(merk_name, {"slop": 20, "bungkus": 200, "harga_kanvas": 0})
                 
@@ -1117,39 +1149,41 @@ with tab3:
     else:
         st.info("Belum ada data bon resmi tercatat.")
 
-# ================= TAB 6: RESET, HAPUS & BACKUP (ADMIN ONLY) =================
+# ================= TAB 6: BACKUP, RESTORE & RESET (DAPAT DIAKSES SEMUA ROLE) =================
 with tab4:
-    st.subheader("⚙️ Zona Administratif: Backup, Restore & Reset Data")
+    st.subheader("⚙️ Menu Backup, Load & Reset Data")
+    st.markdown(f"Status Login Saat Ini: **{role}** (Menu Backup & Load Google Sheet terbuka untuk semua role).")
+
+    col_bk1, col_bk2 = st.columns(2)
+    
+    with col_bk1:
+        st.markdown("### ☁️ Backup ke Google Sheet")
+        st.markdown("Menimpa (*overwrite*) data terbaru ke Google Sheet agar aman dan tidak double.")
+        if st.button("🚀 Backup Sekarang (Overwrite)", type="primary"):
+            with st.spinner("Sedang memproses backup data..."):
+                success, msg = backup_to_google_sheets()
+                if success:
+                    st.success("✅ " + msg)
+                else:
+                    st.error("❌ " + msg)
+
+    with col_bk2:
+        st.markdown("### 📥 Load dari Google Sheet")
+        st.markdown("Tarik data dari Google Sheet secara manual jika diperlukan.")
+        if st.button("🔄 Tarik Data dari Google Sheet", type="secondary"):
+            with st.spinner("Sedang memuat data..."):
+                success, msg = load_from_google_sheets()
+                if success:
+                    st.success("✅ " + msg)
+                    st.rerun()
+                else:
+                    st.error("❌ " + msg)
+
+    st.divider()
+    st.markdown("### 🗑️ Zona Bahaya: Reset & Hapus Keseluruhan")
     if role != "Admin":
-        st.warning("⚠️ Menu ini dikunci dan hanya dapat diakses oleh **Admin**.")
+        st.info("🔒 Tombol **Hapus Semua Data (Reset All)** hanya dapat diakses oleh role **Admin**.")
     else:
-        col_bk1, col_bk2 = st.columns(2)
-        
-        with col_bk1:
-            st.markdown("### ☁️ Backup ke Google Sheet")
-            st.markdown("Menimpa (*overwrite*) data terbaru ke Google Sheet agar aman dan tidak double.")
-            if st.button("🚀 Backup Sekarang (Overwrite)", type="primary"):
-                with st.spinner("Sedang memproses backup data..."):
-                    success, msg = backup_to_google_sheets()
-                    if success:
-                        st.success("✅ " + msg)
-                    else:
-                        st.error("❌ " + msg)
-
-        with col_bk2:
-            st.markdown("### 📥 Load dari Google Sheet")
-            st.markdown("Tarik data dari Google Sheet jika halaman aplikasi ter-refresh atau data memori kosong.")
-            if st.button("🔄 Tarik Data dari Google Sheet", type="secondary"):
-                with st.spinner("Sedang memuat data..."):
-                    success, msg = load_from_google_sheets()
-                    if success:
-                        st.success("✅ " + msg)
-                        st.rerun()
-                    else:
-                        st.error("❌ " + msg)
-
-        st.divider()
-        st.markdown("### 🗑️ Zona Bahaya: Reset & Hapus Keseluruhan")
         confirm_checkbox = st.checkbox("Saya mengerti risiko dan ingin menghapus seluruh data.")
         if st.button("🗑️ HAPUS SEMUA DATA (RESET ALL)", type="primary"):
             if confirm_checkbox:
