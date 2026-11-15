@@ -800,6 +800,17 @@ with tab2:
         with col_gt4:
             st.metric("🎯 Total Setoran Konsumen", f"Rp {grand_total_konsumen:,.0f}")
 
+
+        st.markdown("---")
+        st.markdown("### 👥 Rekapitulasi Berdasarkan Team / Promotor")
+        if not df_filtered.empty:
+            df_rekap_team = df_filtered.groupby("Team/Promotor").agg({
+                "Terjual": "sum", "Rokok Lain-lain": "sum", "Total Setoran Kanvas": "sum", "Total Setoran Konsumen": "sum"
+            }).reset_index()
+            st.dataframe(df_rekap_team, use_container_width=True)
+        else:
+            st.info("Tidak ada data rekapitulasi team untuk filter terpilih.")
+
         st.markdown("---")
         st.markdown(f"### 📦 Kondisi Sisa Stock Akhir Terakhir per Merk Rokok")
         
@@ -824,16 +835,6 @@ with tab2:
             st.dataframe(df_rekap_bon, use_container_width=True)
         else:
             st.info("Tidak ada data rekapitulasi bon untuk filter terpilih.")
-
-        st.markdown("---")
-        st.markdown("### 👥 Rekapitulasi Berdasarkan Team / Promotor")
-        if not df_filtered.empty:
-            df_rekap_team = df_filtered.groupby("Team/Promotor").agg({
-                "Terjual": "sum", "Rokok Lain-lain": "sum", "Total Setoran Kanvas": "sum", "Total Setoran Konsumen": "sum"
-            }).reset_index()
-            st.dataframe(df_rekap_team, use_container_width=True)
-        else:
-            st.info("Tidak ada data rekapitulasi team untuk filter terpilih.")
 
         st.divider()
         st.markdown("### 🗑️ Menu Hapus Data")
