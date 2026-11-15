@@ -83,7 +83,6 @@ def load_from_google_sheets():
             if len(trx_vals) > 1:
                 df_trx_loaded = pd.DataFrame(trx_vals[1:], columns=trx_vals[0])
                 
-                # Migrasi nama kolom lama jika ada di GSheet
                 if "Total Setoran Konsumen" in df_trx_loaded.columns and "Total Setoran" not in df_trx_loaded.columns:
                     df_trx_loaded = df_trx_loaded.rename(columns={"Total Setoran Konsumen": "Total Setoran"})
                 
@@ -95,7 +94,6 @@ def load_from_google_sheets():
                     if col in df_trx_loaded.columns:
                         df_trx_loaded[col] = pd.to_numeric(df_trx_loaded[col], errors='coerce').fillna(0)
                 
-                # Pastikan kolom Total Setoran benar-benar ada
                 if "Total Setoran" not in df_trx_loaded.columns:
                     df_trx_loaded["Total Setoran"] = 0
 
@@ -157,10 +155,6 @@ def load_from_google_sheets():
 
 
 def get_active_remaining_stocks():
-    """
-    Menghitung sisa stok aktif terkini dari df_transaksi (yang juga diedit di Tabel Rekap & Edit)
-    dikurangi total yang sudah diselesaikan ke gudang pada df_penyelesaian_gudang.
-    """
     if st.session_state.df_transaksi.empty:
         return pd.DataFrame(columns=["Team/Promotor", "Merk Rokok", "Sisa Stock Akhir", "No Bon Terakhir", "Tanggal Terakhir"])
 
@@ -222,16 +216,12 @@ if "df_penyelesaian_gudang" not in st.session_state:
         "ID Penyelesaian", "Tanggal", "Team/Promotor", "Merk Rokok", "Jumlah Bungkus", "Keterangan"
     ])
 
-# Kompatibilitas migrasi nama kolom lama jika ada di session state lokal
 if not st.session_state.df_transaksi.empty:
     if "Total Setoran Konsumen" in st.session_state.df_transaksi.columns and "Total Setoran" not in st.session_state.df_transaksi.columns:
         st.session_state.df_transaksi = st.session_state.df_transaksi.rename(columns={"Total Setoran Konsumen": "Total Setoran"})
     if "Total Setoran" not in st.session_state.df_transaksi.columns:
         st.session_state.df_transaksi["Total Setoran"] = 0
 
-# ==========================================
-# OTOMATIS LOAD DATA SAAT PERTAMA KALI DIBUKA
-# ==========================================
 if "is_data_loaded" not in st.session_state:
     st.session_state.is_data_loaded = False
 
@@ -259,7 +249,6 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-
 
 # --- SIDEBAR: NAVIGASI & ROLE ---
 try:
@@ -322,7 +311,6 @@ with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
             up_kanvas = st.number_input("Harga Kanvas Baru", min_value=0, value=int(current_detail.get("harga_kanvas", 0)), step=100)
             up_konsumen = st.number_input("Harga Konsumen Baru", min_value=0, value=int(current_detail.get("harga_konsumen", 0)), step=100)
             
-            # --- CSS KUSTOM KHUSUS TOMBOL "Simpan Perubahan Harga" (Kuning Emas) ---
             st.markdown("""
                 <style>
                 div[data-testid="stSidebar"] form button[type="submit"] {
@@ -346,7 +334,6 @@ with st.sidebar.expander("🛠️ Master Harga & Merk Rokok", expanded=False):
                         item["harga_konsumen"] = int(up_konsumen)
                         break
                 
-                # Simpan permanen ke file JSON
                 save_master_harga(st.session_state.master_rokok_data)
                 
                 harga_widget_key = f"harga_konsumen_{st.session_state.trx_form_reset_id}_{selected_edit_merk}"
@@ -382,26 +369,18 @@ with tab_pre_entry:
         st.session_state.pre_form_reset_id = 0
 
     pre_nama_key = f"pre_team_input_{st.session_state.pre_form_reset_id}"
-    if pre_nama_key not in st.session_state:
-        st.session_state[pre_nama_key] = ""
+    pre_ket_key = f"pre_ket_input_{st.session_state.pre_form_reset_id}"
+
+    # Kumpulkan riwayat data unik yang pernah di-entry sebelumnya untuk Predicted Text (<datalist>)
+    list_history_nama = []
+    if not st.session_state.df_pre_entry_bon.empty and "Team/Promotor" in st.session_state.df_pre_entry_bon.columns:
+        list_history_nama = st.session_state.df_pre_entry_bon["Team/Promotor"].dropna().unique().tolist()
+
+    list_history_ket = []
+    if not st.session_state.df_pre_entry_bon.empty and "Keterangan" in st.session_state.df_pre_entry_bon.columns:
+        list_history_ket = st.session_state.df_pre_entry_bon["Keterangan"].dropna().unique().tolist()
 
     with st.expander("➕ Buat Draft Bon Baru (Multi-Merk)", expanded=True):
-        
-        # --- RECENT NAMES CHIPS DILETAKKAN DI SINI (SEBELUM FORM) ---
-        recent_pre_names = []
-        if not st.session_state.df_pre_entry_bon.empty and "Team/Promotor" in st.session_state.df_pre_entry_bon.columns:
-            recent_pre_names = st.session_state.df_pre_entry_bon["Team/Promotor"].dropna().unique().tolist()[-5:]
-
-        if recent_pre_names:
-            st.markdown("🕒 **Riwayat Nama Pengebon Terakhir (Klik untuk mengisi cepat):**")
-            cols_chip_pre = st.columns(min(len(recent_pre_names), 5))
-            for idx, p_name in enumerate(recent_pre_names):
-                with cols_chip_pre[idx]:
-                    if st.button(f"👤 {p_name}", key=f"chip_pre_name_{idx}", use_container_width=True):
-                        st.session_state[pre_nama_key] = p_name
-                        st.rerun()
-            st.markdown("")
-
         with st.form(f"form_pre_entry_{st.session_state.pre_form_reset_id}", clear_on_submit=True):
             st.markdown("#### Informasi Draft Bon")
             
@@ -415,7 +394,44 @@ with tab_pre_entry:
                     "Dirsell SPG", "Event", "Pembinaan Kantor", "Sampling / Promosi", "Lainnya"
                 ], key="pre_kep")
 
-            keterangan_pre_umum = st.text_input("Keterangan Draft (Opsional)", placeholder="Contoh: Permintaan stok untuk Event Weekend")
+            keterangan_pre_umum = st.text_input("Keterangan Draft (Opsional)", placeholder="Contoh: Permintaan stok untuk Event Weekend", key=pre_ket_key)
+
+            # --- INJEKSI PREDICTED TEXT (<datalist>) KE STREAMLIT UI ---
+            options_nama_html = "".join([f'<option value="{name}">' for name in list_history_nama])
+            options_ket_html = "".join([f'<option value="{ket}">' for ket in list_history_ket])
+            
+            predicted_text_code = f"""
+            <script>
+                const doc = window.parent.document;
+                
+                // Cari input field Nama Pengebon / Promotor
+                const inputsNama = doc.querySelectorAll('input[aria-label="Nama Pengebon / Promotor"]');
+                inputsNama.forEach((input, index) => {{
+                    input.setAttribute('list', 'history-nama-list');
+                    let datalist = doc.getElementById('history-nama-list');
+                    if (!datalist) {{
+                        datalist = doc.createElement('datalist');
+                        datalist.id = 'history-nama-list';
+                        doc.body.appendChild(datalist);
+                    }}
+                    datalist.innerHTML = `{options_nama_html}`;
+                }});
+
+                // Cari input field Keterangan Draft
+                const inputsKet = doc.querySelectorAll('input[aria-label="Keterangan Draft (Opsional)"]');
+                inputsKet.forEach((input, index) => {{
+                    input.setAttribute('list', 'history-ket-list');
+                    let datalist = doc.getElementById('history-ket-list');
+                    if (!datalist) {{
+                        datalist = doc.createElement('datalist');
+                        datalist.id = 'history-ket-list';
+                        doc.body.appendChild(datalist);
+                    }}
+                    datalist.innerHTML = `{options_ket_html}`;
+                }});
+            </script>
+            """
+            st.components.v1.html(predicted_text_code, height=0, width=0)
 
             st.markdown("---")
             st.markdown("#### Daftar Merk Rokok dalam Draft Ini")
@@ -492,22 +508,6 @@ with tab_pre_entry:
                     st.session_state.jumlah_baris_pre = 5
                     st.session_state.pre_form_reset_id += 1
                     st.success(f"✅ Berhasil menyimpan Draft dengan ID Group **{Draftt_group_id}** (Rencana Penyelesaian: {rencana_penyelesaian_date})!")
-                    st.rerun()
-
-    # --- RECENT NAMES CHIPS KHUSUS MENU PRE-ENTRY ---
-    recent_pre_names = []
-    if not st.session_state.df_pre_entry_bon.empty and "Team/Promotor" in st.session_state.df_pre_entry_bon.columns:
-        recent_pre_names = st.session_state.df_pre_entry_bon["Team/Promotor"].dropna().unique().tolist()[-5:]
-
-    if recent_pre_names:
-        st.markdown("🕒 **Riwayat Nama Pengebon Terakhir (Klik untuk mengisi cepat):**")
-        cols_chip_pre = st.columns(min(len(recent_pre_names), 5))
-        for idx, p_name in enumerate(recent_pre_names):
-            with cols_chip_pre[idx]:
-                # PERBAIKAN: Tambahkan pengenal unik (misal: st.session_state.pre_form_reset_id) pada key tombol
-                chip_unique_key = f"chip_pre_name_{st.session_state.pre_form_reset_id}_{idx}_{p_name}"
-                if st.button(f"👤 {p_name}", key=chip_unique_key, use_container_width=True):
-                    st.session_state[pre_nama_key] = p_name
                     st.rerun()
 
     st.divider()
@@ -845,7 +845,6 @@ with tab2:
         if "No Bon" not in st.session_state.df_transaksi.columns:
             st.session_state.df_transaksi["No Bon"] = st.session_state.df_transaksi["ID"]
         
-        # Jaminan pengaman kolom Total Setoran agar tidak KeyError
         if "Total Setoran" not in st.session_state.df_transaksi.columns:
             if "Total Setoran Konsumen" in st.session_state.df_transaksi.columns:
                 st.session_state.df_transaksi = st.session_state.df_transaksi.rename(columns={"Total Setoran Konsumen": "Total Setoran"})
@@ -883,7 +882,6 @@ with tab2:
         if selected_filter_bon != "Semua No Bon":
             df_filtered = df_filtered[df_filtered["No Bon"] == selected_filter_bon]
 
-        # Amankan kolom Total Setoran pada df_filtered
         if "Total Setoran" not in df_filtered.columns:
             df_filtered["Total Setoran"] = 0
 
@@ -905,9 +903,6 @@ with tab2:
         with col_gt4:
             st.metric("🎯 Total Setoran", f"Rp {grand_total_setoran:,.0f}")
 
-        # ==========================================
-        # DETAIL ROKOK YANG LAKU DI BAWAH GRAND TOTAL
-        # ==========================================
         st.markdown("")
         st.markdown("#### 📦 Detail Rokok yang Laku, Grand Total Kanvas & Total Setoran per Merk")
         
@@ -1048,9 +1043,6 @@ with tab_lap_team:
 with tab3:
     st.subheader("📋 Management & Rekap Data Bon Rokok")
     
-    # ----------------------------------------------------
-    # BAGIAN 1: LAPORAN Draft PRE ENTRY BON
-    # ----------------------------------------------------
     st.markdown("### 📥 Rekapitulasi Draft Pre Entry Bon (Belum Disubmit)")
     st.markdown("Filter, unduh, pratinjau cetak, dan cetak rekapitulasi Draft bon berdasarkan tanggal rencana penyelesaian.")
 
@@ -1153,9 +1145,6 @@ with tab3:
 
     st.divider()
 
-    # ----------------------------------------------------
-    # BAGIAN 2: LAPORAN BON RESMI & STATUS BON (SELESAI / BELUM SELESAI)
-    # ----------------------------------------------------
     st.markdown("### 📋 Rekapitulasi Data Bon Rokok Resmi & Status Bon")
     st.markdown("Pilih filter keterangan dan status bon (Selesai/Belum Selesai), lalu lihat ringkasan gabungan merk rokok.")
 
@@ -1403,7 +1392,7 @@ with tab_gudang:
     else:
         st.info("Belum ada riwayat penyelesaian rokok ke gudang.")
 
-# ================= TAB 7: BACKUP, RESTORE & RESET (DAPAT DIAKSES SEMUA ROLE) =================
+# ================= TAB 7: BACKUP, RESTORE & RESET =================
 with tab4:
     st.subheader("⚙️ Menu Backup, Load & Reset Data")
     st.markdown(f"Status Login Saat Ini: **{role}** (Menu Backup & Load Google Sheet terbuka untuk semua role).")
@@ -1426,7 +1415,7 @@ with tab4:
         st.markdown("Tarik data dari Google Sheet secara manual jika diperlukan.")
         if st.button("🔄 Tarik Data dari Google Sheet", type="secondary"):
             with st.spinner("Sedang memuat data..."):
-                success, msg = load_from_google_sheets()
+                success, mdg = load_from_google_sheets()
                 if success:
                     st.success("✅ " + msg)
                     st.rerun()
