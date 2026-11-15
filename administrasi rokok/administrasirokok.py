@@ -903,20 +903,7 @@ with tab2:
         with col_gt4:
             st.metric("🎯 Total Setoran Konsumen", f"Rp {grand_total_konsumen:,.0f}")
 
-        st.markdown("---")
-        st.markdown(f"### 📦 Kondisi Sisa Stock Akhir Terakhir per Merk Rokok")
         
-        # Menggunakan get_active_remaining_stocks() agar otomatis terhapus/berkurang jika sudah diselesaikan ke gudang
-        df_active_tab2 = get_active_remaining_stocks()
-        if selected_filter_team != "Semua Team":
-            df_active_tab2 = df_active_tab2[df_active_tab2["Team/Promotor"] == selected_filter_team]
-
-        if not df_active_tab2.empty:
-            df_sisa_merk = df_active_tab2.groupby("Merk Rokok")["Sisa Stock Akhir"].sum().reset_index()
-            df_sisa_merk.columns = ["Merk Rokok", "Sisa Stock Akhir Terakhir (Bungkus)"]
-            st.dataframe(df_sisa_merk, use_container_width=True)
-        else:
-            st.info("Tidak ada sisa stock aktif (semua stock sudah habis atau diselesaikan ke gudang).")
 
         st.markdown("---")
         st.markdown("### 📋 Rekapitulasi Berdasarkan Nomor Bon")
@@ -939,6 +926,22 @@ with tab2:
         else:
             st.info("Tidak ada data rekapitulasi team untuk filter terpilih.")
 
+        st.markdown("---")
+        st.markdown(f"### 📦 Kondisi Sisa Stock Akhir Terakhir per Merk Rokok")
+        
+        # Menggunakan get_active_remaining_stocks() agar otomatis terhapus/berkurang jika sudah diselesaikan ke gudang
+        df_active_tab2 = get_active_remaining_stocks()
+        if selected_filter_team != "Semua Team":
+            df_active_tab2 = df_active_tab2[df_active_tab2["Team/Promotor"] == selected_filter_team]
+
+        if not df_active_tab2.empty:
+            df_sisa_merk = df_active_tab2.groupby("Merk Rokok")["Sisa Stock Akhir"].sum().reset_index()
+            df_sisa_merk.columns = ["Merk Rokok", "Sisa Stock Akhir Terakhir (Bungkus)"]
+            st.dataframe(df_sisa_merk, use_container_width=True)
+        else:
+            st.info("Tidak ada sisa stock aktif (semua stock sudah habis atau diselesaikan ke gudang).")
+
+        
         st.divider()
         st.markdown("### 🗑️ Menu Hapus Data")
         col_del1, col_del2 = st.columns(2)
